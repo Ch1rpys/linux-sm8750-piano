@@ -1,0 +1,131 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Clock definitions derived from sm8750-mtp.dts:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "sm8750.dtsi"
+#include "pmk8550.dtsi"
+
+/delete-node/ &cpusys_vm_mem;
+/delete-node/ &adspslpi_mem;
+/delete-node/ &oem_vm_mem;
+
+/ {
+	model = "Xiaomi Pad 8 Pro";
+	compatible = "xiaomi,piano", "qcom,sm8750";
+	chassis-type = "tablet";
+
+	aliases {
+		serial0 = &uart7;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	clocks {
+		xo_board: xo-board {
+			compatible = "fixed-clock";
+			clock-frequency = <76800000>;
+			#clock-cells = <0>;
+		};
+
+		sleep_clk: sleep-clk {
+			compatible = "fixed-clock";
+			clock-frequency = <32000>;
+			#clock-cells = <0>;
+		};
+
+		bi_tcxo_div2: bi-tcxo-div2-clk {
+			compatible = "fixed-factor-clock";
+			#clock-cells = <0>;
+			clocks = <&rpmhcc RPMH_CXO_CLK>;
+			clock-mult = <1>;
+			clock-div = <2>;
+		};
+
+		bi_tcxo_ao_div2: bi-tcxo-ao-div2-clk {
+			compatible = "fixed-factor-clock";
+			#clock-cells = <0>;
+			clocks = <&rpmhcc RPMH_CXO_CLK_A>;
+			clock-mult = <1>;
+			clock-div = <2>;
+		};
+	};
+
+	reserved-memory {
+		display_dump_mem: display-dump@81cf4000 {
+			reg = <0x0 0x81cf4000 0x0 0x800>;
+			no-map;
+		};
+
+		reserved@9b09c000 {
+			reg = <0x0 0x9b09c000 0x0 0x4000>;
+			no-map;
+		};
+
+		reserved@9eb80000 {
+			reg = <0x0 0x9eb80000 0x0 0x80000>;
+			no-map;
+		};
+
+		ramoops@a3500000 {
+			compatible = "ramoops";
+			reg = <0x0 0xa3500000 0x0 0x400000>;
+			console-size = <0x200000>;
+			pmsg-size = <0x200000>;
+		};
+
+		adspslpi_mem: adspslpi@b8200000 {
+			reg = <0x0 0xb8200000 0x0 0x5780000>;
+			no-map;
+		};
+
+		oem_vm_mem: oem-vm@f8800000 {
+			reg = <0x0 0xf8800000 0x0 0x3800000>;
+			no-map;
+		};
+
+		vm_shared_mem: vm-shared@fc000000 {
+			reg = <0x0 0xfc000000 0x0 0x400000>;
+			no-map;
+		};
+
+		/* Retain the bootloader scanout until the panel is supported. */
+		splash_mem: framebuffer@fc800000 {
+			reg = <0x0 0xfc800000 0x0 0x2b00000>;
+			no-map;
+		};
+	};
+};
+
+&gunyah_hyp_mem {
+	reg = <0x0 0x80000000 0x0 0x1200000>;
+};
+
+&mpss_mem {
+	status = "disabled";
+};
+
+&pon_pwrkey {
+	status = "okay";
+};
+
+&qupv3_1 {
+	status = "okay";
+};
+
+&trust_ui_vm_mem {
+	reg = <0x0 0xf3800000 0x0 0x5000000>;
+};
+
+&uart7 {
+	status = "okay";
+};
+
+&xbl_ramdump_mem {
+	reg = <0x0 0xb8000000 0x0 0x200000>;
+};
