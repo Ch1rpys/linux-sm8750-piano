@@ -118,6 +118,10 @@
 	status = "okay";
 };
 
+&tlmm {
+	gpio-reserved-ranges = <36 4>, <48 4>, <74 1>;
+};
+
 &trust_ui_vm_mem {
 	reg = <0x0 0xf3800000 0x0 0x5000000>;
 };
