@@ -31,6 +31,7 @@
 		framebuffer {
 			compatible = "simple-framebuffer";
 			memory-region = <&splash_mem>;
+			clocks = <&gcc GCC_DISP_HF_AXI_CLK>;
 			width = <3200>;
 			height = <2136>;
 			stride = <(3200 * 4)>;
