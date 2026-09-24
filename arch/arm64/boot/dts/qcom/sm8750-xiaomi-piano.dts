@@ -26,6 +26,16 @@
 
 	chosen {
 		stdout-path = "serial0:115200n8";
+
+		/* Firmware scanout; replace with native DPU/panel ownership. */
+		framebuffer {
+			compatible = "simple-framebuffer";
+			memory-region = <&splash_mem>;
+			width = <3200>;
+			height = <2136>;
+			stride = <(3200 * 4)>;
+			format = "x8r8g8b8";
+		};
 	};
 
 	clocks {
