@@ -96,8 +96,8 @@
 			no-map;
 		};
 
-		/* Retain the bootloader scanout until the panel is supported. */
-		splash_mem: framebuffer@fc800000 {
+		/* ABL powers down the display unless this name is splash_region. */
+		splash_mem: splash_region@fc800000 {
 			reg = <0x0 0xfc800000 0x0 0x2b00000>;
 			no-map;
 		};
