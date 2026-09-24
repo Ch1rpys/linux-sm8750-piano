@@ -203,6 +203,21 @@
 	status = "okay";
 };
 
+/* Enable only for a supervised THP test with panel power already present. */
+&spi2 {
+	status = "disabled";
+
+	touchscreen@0 {
+		compatible = "novatek,nt36532e";
+		reg = <0>;
+		spi-max-frequency = <19200000>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <162 IRQ_TYPE_EDGE_RISING>;
+		firmware-name = "novatek/piano/novatek_nt36532_piano_fw_csot.bin";
+		status = "disabled";
+	};
+};
+
 &tlmm {
 	gpio-reserved-ranges = <36 4>, <48 4>, <74 1>;
 };
