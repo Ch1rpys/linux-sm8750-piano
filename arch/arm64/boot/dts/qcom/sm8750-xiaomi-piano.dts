@@ -154,6 +154,21 @@
 	reg = <0x0 0x80000000 0x0 0x1200000>;
 };
 
+/* Keep both buses disabled until the observable telemetry-only probe. */
+&i2c5 {
+	fuel-gauge@55 {
+		compatible = "ti,bq27z561";
+		reg = <0x55>;
+	};
+};
+
+&i2c11 {
+	fuel-gauge@55 {
+		compatible = "ti,bq27z561";
+		reg = <0x55>;
+	};
+};
+
 &mpss_mem {
 	status = "disabled";
 };
