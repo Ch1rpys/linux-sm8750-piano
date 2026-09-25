@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Supervised read-only UFS identification variant of the piano board.
+ *
+ * Enables only the UFS host and its QMP PHY. The PHY QREF/REFGEN rails, the
+ * reset pad rail and the VCCQ parent stay as the boot firmware left them.
+ * Not for default or unattended boots: nothing here makes the Android
+ * partitions safe to write.
+ */
+
+#include "sm8750-xiaomi-piano.dts"
+
+&ufs_mem_hc {
+	status = "okay";
+};
+
+&ufs_mem_phy {
+	status = "okay";
+};
