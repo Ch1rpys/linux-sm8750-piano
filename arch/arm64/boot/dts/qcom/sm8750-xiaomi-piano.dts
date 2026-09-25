@@ -116,7 +116,11 @@
 };
 
 &apps_rsc {
-	/* Only stock-verified USB output rails; input topology is not yet known. */
+	/*
+	 * Only stock-verified output rails (USB, UFS); input topology is not yet
+	 * known. UFS rails carry no initial mode, so they send no RPMh vote until
+	 * a consumer enables them; modes then follow the consumer load.
+	 */
 	regulators-0 {
 		compatible = "qcom,pm8550-rpmh-regulators";
 		qcom,pmic-id = "b";
@@ -134,11 +138,29 @@
 			regulator-max-microvolt = <1800000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
+
+		vreg_l17b_2p5: ldo17 {
+			regulator-name = "vreg_l17b_2p5";
+			regulator-min-microvolt = <2504000>;
+			regulator-max-microvolt = <2504000>;
+			regulator-allow-set-load;
+			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
+						   RPMH_REGULATOR_MODE_HPM>;
+		};
 	};
 
 	regulators-1 {
 		compatible = "qcom,pm8550ve-rpmh-regulators";
 		qcom,pmic-id = "d";
+
+		vreg_l1d_1p2: ldo1 {
+			regulator-name = "vreg_l1d_1p2";
+			regulator-min-microvolt = <1200000>;
+			regulator-max-microvolt = <1200000>;
+			regulator-allow-set-load;
+			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
+						   RPMH_REGULATOR_MODE_HPM>;
+		};
 
 		vreg_l2d_0p88: ldo2 {
 			regulator-name = "vreg_l2d_0p88";
@@ -157,6 +179,21 @@
 			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <1256000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+	};
+
+	regulators-3 {
+		compatible = "qcom,pm8550vs-rpmh-regulators";
+		qcom,pmic-id = "j";
+
+		/* The UFS PHY needs at least 912 mV within the 880-920 mV rail range. */
+		vreg_l1j_0p91: ldo1 {
+			regulator-name = "vreg_l1j_0p91";
+			regulator-min-microvolt = <912000>;
+			regulator-max-microvolt = <920000>;
+			regulator-allow-set-load;
+			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
+						   RPMH_REGULATOR_MODE_HPM>;
 		};
 	};
 };
@@ -228,6 +265,29 @@
 
 &uart7 {
 	status = "okay";
+};
+
+/*
+ * Only for a supervised read-only identification variant. The PHY QREF and
+ * REFGEN rails, the reset pad (PX14) rail and the VCCQ parent have no
+ * upstream consumer and stay as the boot firmware left them.
+ */
+&ufs_mem_hc {
+	reset-gpios = <&tlmm 215 GPIO_ACTIVE_LOW>;
+
+	vcc-supply = <&vreg_l17b_2p5>;
+	vcc-max-microamp = <1300000>;
+	vccq-supply = <&vreg_l1d_1p2>;
+	vccq-max-microamp = <1200000>;
+
+	status = "disabled";
+};
+
+&ufs_mem_phy {
+	vdda-phy-supply = <&vreg_l1j_0p91>;
+	vdda-pll-supply = <&vreg_l3g_1p2>;
+
+	status = "disabled";
 };
 
 &usb {
