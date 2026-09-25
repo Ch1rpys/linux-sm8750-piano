@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Supervised NT36532E THP diagnostic variant of the piano board.
+ *
+ * Touch/panel power is left on by the boot firmware; Linux does not own the
+ * shared TDDI supplies yet (TD-014). Not for default or unattended boots.
+ */
+
+#include "sm8750-xiaomi-piano.dts"
+
+/*
+ * spi-geni-qcom requests the SoC-declared GPI channels when firmware has
+ * disabled the SE FIFO interface, and defers while the provider is absent.
+ */
+&gpi_dma1 {
+	status = "okay";
+};
+
+&spi2 {
+	status = "okay";
+
+	touchscreen@0 {
+		status = "okay";
+	};
+};
