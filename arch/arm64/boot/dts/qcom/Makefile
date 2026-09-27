@@ -400,6 +400,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= sm8650-mtp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8650-qrd.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-mtp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-qrd.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-gpu-diag.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-thp-diag.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-ufs-ro-diag.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano.dtb

@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Supervised Adreno 830 diagnostic variant of the piano board.
+ *
+ * Enables only the GPU; its GMU, GPU clock controllers and SMMU come from
+ * sm8750.dtsi unchanged. The display stays on the firmware framebuffer and
+ * MDSS stays disabled, so the kernel command line must carry
+ * msm.separate_gpu_kms=1 for the GPU to register its own render device.
+ * Not for default or unattended boots.
+ */
+
+#include "sm8750-xiaomi-piano.dts"
+
+&gpu {
+	status = "okay";
+};
