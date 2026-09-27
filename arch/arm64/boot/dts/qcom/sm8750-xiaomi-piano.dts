@@ -211,7 +211,11 @@
 	reg = <0x0 0x80000000 0x0 0x1200000>;
 };
 
-/* Keep both buses disabled until the observable telemetry-only probe. */
+/*
+ * Keep both buses disabled outside the supervised power-diag variant. SE5 is
+ * marked multi-EE (qcom,shared) in the stock tree; this kernel has no GPI
+ * lock/unlock support for sharing it with another execution environment.
+ */
 &i2c5 {
 	fuel-gauge@55 {
 		compatible = "ti,bq27z561";
@@ -243,6 +247,15 @@
 
 &pon_pwrkey {
 	status = "okay";
+};
+
+/* Stock sets the TLMM I2C pull-up (qcom,i2c_pull) on both fuel-gauge buses. */
+&qup_i2c5_data_clk {
+	bias-pull-up = <2200>;
+};
+
+&qup_i2c11_data_clk {
+	bias-pull-up = <2200>;
 };
 
 &qupv3_1 {
