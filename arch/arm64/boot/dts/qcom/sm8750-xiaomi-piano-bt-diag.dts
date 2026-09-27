@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Supervised Bluetooth diagnostic variant of the piano board.
+ *
+ * Enables only the WCN7860 PMU (power sequencer) and UART14 with its
+ * Bluetooth child. PCIe0 and the WLAN function stay disabled. Not for
+ * default or unattended boots.
+ */
+
+#include "sm8750-xiaomi-piano.dts"
+
+&uart14 {
+	status = "okay";
+};
+
+&wcn7860_pmu {
+	status = "okay";
+};
