@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Supervised read-only fuel-gauge diagnostic variant of the piano board.
+ *
+ * Enables only the two BQ27Z561 buses, their QUP wrapper and the GPI DMA
+ * providers the GENI I2C driver needs when firmware has disabled an SE FIFO.
+ * No charger, charge pump, battery-path GPIO, monitored-battery or thermal
+ * policy is described. SE5 is multi-EE in the stock tree and this kernel
+ * does not lock it against another execution environment. Not for default
+ * or unattended boots.
+ */
+
+#include "sm8750-xiaomi-piano.dts"
+
+&gpi_dma1 {
+	status = "okay";
+};
+
+&gpi_dma2 {
+	status = "okay";
+};
+
+&i2c5 {
+	status = "okay";
+};
+
+&i2c11 {
+	status = "okay";
+};
+
+&qupv3_2 {
+	status = "okay";
+};
