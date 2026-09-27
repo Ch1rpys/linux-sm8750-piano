@@ -198,6 +198,15 @@
 	};
 };
 
+/*
+ * Device-signed zap shader, taken from this unit's ODM image and supplied
+ * only through a private RAM-candidate firmware directory. The GPU itself
+ * stays disabled here; only the supervised gpu-diag variant enables it.
+ */
+&gpu_zap_shader {
+	firmware-name = "qcom/sm8750/xiaomi/piano/gen80000_zap.mbn";
+};
+
 &gunyah_hyp_mem {
 	reg = <0x0 0x80000000 0x0 0x1200000>;
 };
