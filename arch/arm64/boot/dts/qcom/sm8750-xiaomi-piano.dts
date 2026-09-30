@@ -487,6 +487,14 @@
 	status = "okay";
 };
 
+/* Stock combo PHY uses L2D for vdd and L3G for its 1.2 V core supply.
+ * Keep it disabled until Type-C routing and a supervised test are ready.
+ */
+&usb_dp_qmpphy {
+	vdda-phy-supply = <&vreg_l2d_0p88>;
+	vdda-pll-supply = <&vreg_l3g_1p2>;
+};
+
 &usb_hsphy {
 	vdd-supply = <&vreg_l2d_0p88>;
 	vdda12-supply = <&vreg_l3g_1p2>;
