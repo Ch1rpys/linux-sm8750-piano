@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/* Supervised RAM-only ADSP/PAS/GLINK diagnostic; no charger control. */
+
+#include "sm8750-xiaomi-piano.dts"
+
+&remoteproc_adsp {
+	firmware-name = "qcom/sm8750/piano/adsp.mdt",
+			"qcom/sm8750/piano/adsp_dtb.mdt";
+	status = "okay";
+};
