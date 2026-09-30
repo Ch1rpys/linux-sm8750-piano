@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/* Supervised mono DMIC capture integration; load audio modules after logging. */
+
+#include "sm8750-xiaomi-piano-adsp-diag.dts"
+
+/ {
+	sound {
+		compatible = "qcom,sm8750-sndcard", "qcom,sm8450-sndcard";
+		model = "Piano-Capture-Diag";
+		aux-devs = <&lpass_vamacro>;
+
+		/* The DMIC clock gates live in VA even when samples use TX. */
+		audio-routing = "TX DMIC4", "VA DMIC4",
+				"VA DMIC4", "VA_MCLK";
+
+		capture-dai-link {
+			link-name = "Internal DMIC Capture";
+
+			cpu {
+				sound-dai = <&q6apmbedai TX_CODEC_DMA_TX_3>;
+			};
+
+			codec {
+				sound-dai = <&lpass_txmacro 0>;
+			};
+
+			platform {
+				sound-dai = <&q6apm>;
+			};
+		};
+	};
+};
+
+&lpass_rxmacro {
+	status = "disabled";
+};
+
+&lpass_tlmm {
+	dmic4_default: dmic4-default-state {
+		clk-pins {
+			pins = "gpio12";
+			function = "dmic3_clk";
+			drive-strength = <4>;
+			output-high;
+		};
+
+		data-pins {
+			pins = "gpio13";
+			function = "dmic3_data";
+			drive-strength = <4>;
+			input-enable;
+		};
+	};
+};
+
+&lpass_txmacro {
+	pinctrl-names = "default";
+	pinctrl-0 = <&dmic4_default>;
+};
+
+&lpass_vamacro {
+	/* Stock TX requests divide-by-4 from the 9.6 MHz DMIC source. */
+	qcom,dmic-sample-rate = <2400000>;
+};
+
+&lpass_wsa2macro {
+	status = "disabled";
+};
+
+&lpass_wsamacro {
+	status = "disabled";
+};
