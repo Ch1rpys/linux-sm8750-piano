@@ -351,6 +351,11 @@
 	};
 };
 
+&mdss_dp0_out {
+	/* Stock limits the DP link clock to 540000 kHz (HBR2). */
+	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000>;
+};
+
 &mpss_mem {
 	status = "disabled";
 };
