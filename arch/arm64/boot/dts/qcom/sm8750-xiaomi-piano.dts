@@ -1281,3 +1281,5 @@
 &xbl_ramdump_mem {
 	reg = <0x0 0xb8000000 0x0 0x200000>;
 };
+
+#include "sm8750-xiaomi-piano-camera.dtsi"
