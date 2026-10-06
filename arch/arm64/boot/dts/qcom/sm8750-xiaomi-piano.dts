@@ -16,10 +16,22 @@
 /delete-node/ &adspslpi_mem;
 /delete-node/ &oem_vm_mem;
 
+#define PIANO_MODEL		"Xiaomi Pad 8 Pro"
+#define PIANO_COMPATIBLE	"xiaomi,piano", "qcom,sm8750"
+
 / {
-	model = "Xiaomi Pad 8 Pro";
-	compatible = "xiaomi,piano", "qcom,sm8750";
+	model = PIANO_MODEL;
+	compatible = PIANO_COMPATIBLE;
 	chassis-type = "tablet";
+
+	/*
+	 * ABL replaces model/compatible with the stock DTBO's ("qcom,sun-mtp",
+	 * ...), which breaks root match tables. CONFIG_QCOM_ABL_ROOT_IDENTITY
+	 * restores them from these copies; the DTBO does not carry them
+	 * (TD-001).
+	 */
+	xiaomi,mainline-model = PIANO_MODEL;
+	xiaomi,mainline-compatible = PIANO_COMPATIBLE;
 
 	aliases {
 		serial0 = &uart7;
