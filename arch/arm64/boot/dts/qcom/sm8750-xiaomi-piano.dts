@@ -190,10 +190,11 @@
 
 &apps_rsc {
 	/*
-	 * Only stock-verified output rails (USB, UFS, WCN7860 PMU inputs); input
-	 * topology is not yet known. UFS and WCN rails carry no initial mode, so
-	 * they send no RPMh vote until a consumer enables them. WCN ranges are
-	 * the intersection of the stock BT and WLAN consumer ranges.
+	 * Only stock-verified output rails (USB, UFS, WCN7860 PMU inputs, keyboard
+	 * bridge); input topology is not yet known. UFS, WCN and keyboard rails
+	 * carry no initial mode, so they send no RPMh vote until a consumer
+	 * enables them. WCN ranges are the intersection of the stock BT and WLAN
+	 * consumer ranges.
 	 */
 	regulators-0 {
 		compatible = "qcom,pm8550-rpmh-regulators";
@@ -204,6 +205,24 @@
 			regulator-min-microvolt = <3100000>;
 			regulator-max-microvolt = <3148000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		/* Stock keyboard bridge dvdd (1800000 uV request, VSET reads 1800 mV). */
+		vreg_l11b_1p8: ldo11 {
+			regulator-name = "vreg_l11b_1p8";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+		};
+
+		/*
+		 * Stock keyboard bridge vdd. The stock kernel requests 3300000 uV,
+		 * which is off the 8 mV PLDO step; the PMIC LDO14 VSET register on
+		 * this unit reads 0x0ce0 (3296 mV) while that request is active.
+		 */
+		vreg_l14b_3p3: ldo14 {
+			regulator-name = "vreg_l14b_3p3";
+			regulator-min-microvolt = <3296000>;
+			regulator-max-microvolt = <3296000>;
 		};
 
 		vreg_l15b_1p8: ldo15 {
@@ -344,6 +363,41 @@
 	};
 };
 
+&i2c6 {
+	/* Stock qcom,clk-freq-out on the keyboard bridge bus. */
+	clock-frequency = <1000000>;
+
+	/*
+	 * Nanosic WN8030 keyboard bridge. Stock requests both interrupts with
+	 * IRQF_TRIGGER_RISING | IRQF_ONESHOT. Kept disabled outside the
+	 * supervised kbd-diag variant: the driver holds the bridge awake while
+	 * bound and has no runtime/system PM yet.
+	 */
+	keyboard@4c {
+		compatible = "xiaomi,piano-keyboard";
+		reg = <0x4c>;
+
+		interrupt-parent = <&tlmm>;
+		interrupts = <97 IRQ_TYPE_EDGE_RISING>,
+			     <95 IRQ_TYPE_EDGE_RISING>;
+		interrupt-names = "irq",
+				  "wakeup";
+
+		reset-gpios = <&tlmm 188 GPIO_ACTIVE_LOW>;
+		wake-gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>;
+
+		vdd-supply = <&vreg_l14b_3p3>;
+		dvdd-supply = <&vreg_l11b_1p8>;
+
+		firmware-name = "nanosic/piano/MCU_Upgrade.bin";
+
+		pinctrl-0 = <&keyboard_default>;
+		pinctrl-names = "default";
+
+		status = "disabled";
+	};
+};
+
 &i2c11 {
 	fuel-gauge@55 {
 		compatible = "ti,bq27z561";
@@ -395,6 +449,12 @@
 	bias-pull-up = <2200>;
 };
 
+/* Stock leaves the internal pull-up off on the keyboard bridge bus. */
+&qup_i2c6_data_clk {
+	/delete-property/ bias-pull-up;
+	bias-disable;
+};
+
 &qupv3_1 {
 	status = "okay";
 };
@@ -416,6 +476,23 @@
 
 &tlmm {
 	gpio-reserved-ranges = <36 4>, <48 4>, <74 1>;
+
+	/* Stock xiaomi_keyboard_{sleep_,}default: wake, reset and status pins. */
+	keyboard_default: keyboard-default-state {
+		wake-pins {
+			pins = "gpio3";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+
+		reset-status-pins {
+			pins = "gpio95", "gpio188";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-disable;
+		};
+	};
 
 	/* Stock cnss_wlan_en_sleep: WLAN held off unless its sequencer target is on. */
 	wlan_en: wlan-en-state {
