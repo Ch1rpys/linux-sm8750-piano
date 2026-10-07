@@ -717,11 +717,11 @@ static int gpi_send_cmd(struct gpii *gpii, struct gchan *gchan,
 static inline void gpi_write_ch_db(struct gchan *gchan,
 				   struct gpi_ring *ring, void *wp)
 {
+	struct gpii *gpii = gchan->gpii;
 	phys_addr_t p_wp;
 
 	p_wp = to_physical(ring, wp);
-	/* Publish the coherent TRE contents before notifying the DMA engine. */
-	writel(p_wp, gchan->ch_cntxt_db_reg);
+	gpi_write_reg(gpii, gchan->ch_cntxt_db_reg, p_wp);
 }
 
 /* program event ring DB register */
@@ -1081,8 +1081,7 @@ static void gpi_process_events(struct gpii *gpii)
 	struct gchan *gchan;
 	u32 chid, type;
 
-	/* Order the producer pointer read before consuming coherent events. */
-	cntxt_rp = readl(gpii->ev_ring_rp_lsb_reg);
+	cntxt_rp = gpi_read_reg(gpii, gpii->ev_ring_rp_lsb_reg);
 	rp = to_virtual(ev_ring, cntxt_rp);
 
 	do {
@@ -1125,7 +1124,7 @@ static void gpi_process_events(struct gpii *gpii)
 		/* clear pending IEOB events */
 		gpi_write_reg(gpii, gpii->ieob_clr_reg, BIT(0));
 
-		cntxt_rp = readl(gpii->ev_ring_rp_lsb_reg);
+		cntxt_rp = gpi_read_reg(gpii, gpii->ev_ring_rp_lsb_reg);
 		rp = to_virtual(ev_ring, cntxt_rp);
 
 	} while (rp != ev_ring->rp);
@@ -1160,8 +1159,7 @@ static void gpi_mark_stale_events(struct gchan *gchan)
 	u32 cntxt_rp, local_rp;
 	void *ev_rp;
 
-	/* The channel IDs below must come from fully published DMA events. */
-	cntxt_rp = readl(gpii->ev_ring_rp_lsb_reg);
+	cntxt_rp = gpi_read_reg(gpii, gpii->ev_ring_rp_lsb_reg);
 
 	ev_rp = ev_ring->rp;
 	local_rp = (u32)to_physical(ev_ring, ev_rp);
@@ -1174,7 +1172,7 @@ static void gpi_mark_stale_events(struct gchan *gchan)
 		ev_rp += ev_ring->el_size;
 		if (ev_rp >= (ev_ring->base + ev_ring->len))
 			ev_rp = ev_ring->base;
-		cntxt_rp = readl(gpii->ev_ring_rp_lsb_reg);
+		cntxt_rp = gpi_read_reg(gpii, gpii->ev_ring_rp_lsb_reg);
 		local_rp = (u32)to_physical(ev_ring, ev_rp);
 	}
 }
