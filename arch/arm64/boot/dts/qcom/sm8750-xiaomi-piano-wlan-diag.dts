@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Supervised WLAN diagnostic variant of the released piano desktop.
+ *
+ * Identical to sm8750-xiaomi-piano-desktop.dts except that PCIe0 and its
+ * PHY are enabled, so the WCN7860 WLAN function (wifi@0) is powered through
+ * its PMU sequencer and enumerated. Not for default or unattended boots.
+ */
+
+#include "sm8750-xiaomi-piano-desktop.dts"
+
+&pcie0 {
+	status = "okay";
+};
+
+&pcie0_phy {
+	status = "okay";
+};
