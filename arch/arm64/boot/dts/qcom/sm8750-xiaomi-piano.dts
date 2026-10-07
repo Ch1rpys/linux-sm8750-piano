@@ -44,7 +44,38 @@
 		framebuffer {
 			compatible = "simple-framebuffer";
 			memory-region = <&splash_mem>;
-			clocks = <&gcc GCC_DISP_HF_AXI_CLK>;
+			/*
+			 * Scanout is owned by the bootloader until native MDSS
+			 * takes over. Hold the display power domains and the
+			 * clocks it left running, so dispcc and rpmhpd
+			 * sync_state do not power them off underneath the
+			 * framebuffer. MMCX is first so required-opps applies
+			 * to it; nom_l1 matches the 575 MHz MDP clock rate.
+			 */
+			clocks = <&gcc GCC_DISP_HF_AXI_CLK>,
+				 <&dispcc DISP_CC_MDSS_AHB_CLK>,
+				 <&dispcc DISP_CC_MDSS_MDP_CLK>,
+				 <&dispcc DISP_CC_MDSS_VSYNC_CLK>,
+				 <&dispcc DISP_CC_MDSS_BYTE0_CLK>,
+				 <&dispcc DISP_CC_MDSS_BYTE0_INTF_CLK>,
+				 <&dispcc DISP_CC_MDSS_PCLK0_CLK>,
+				 <&dispcc DISP_CC_MDSS_ESC0_CLK>,
+				 <&dispcc DISP_CC_MDSS_BYTE1_CLK>,
+				 <&dispcc DISP_CC_MDSS_BYTE1_INTF_CLK>,
+				 <&dispcc DISP_CC_MDSS_PCLK1_CLK>,
+				 <&dispcc DISP_CC_MDSS_ESC1_CLK>;
+			power-domains = <&rpmhpd RPMHPD_MMCX>,
+					<&dispcc MDSS_GDSC>,
+					<&dispcc MDSS_INT2_GDSC>;
+			required-opps = <&rpmhpd_opp_nom_l1>;
+			/*
+			 * Temporary firmware-scanout vote; remove with native MDSS.
+			 * Xiaomi display-drivers aa06fd1757c28dce96fbe4e04d4530ec21b52aac:
+			 * msm_drv.c uses 3 GB/s average/peak for continuous splash.
+			 */
+			interconnects = <&mmss_noc MASTER_MDP QCOM_ICC_TAG_ALWAYS
+					 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+			qcom,boot-bandwidth-kBps = <3000000 3000000>;
 			width = <3200>;
 			height = <2136>;
 			stride = <(3200 * 4)>;
