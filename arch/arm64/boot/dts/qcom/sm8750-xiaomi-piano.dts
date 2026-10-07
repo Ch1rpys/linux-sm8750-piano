@@ -259,11 +259,11 @@
 
 &apps_rsc {
 	/*
-	 * Only stock-verified output rails (USB, UFS, WCN7860 PMU inputs, keyboard
-	 * bridge); input topology is not yet known. UFS, WCN and keyboard rails
-	 * carry no initial mode, so they send no RPMh vote until a consumer
-	 * enables them. WCN ranges are the intersection of the stock BT and WLAN
-	 * consumer ranges.
+	 * Only stock-verified output rails (USB, UFS, PCIe0 PHY, WCN7860 PMU
+	 * inputs, keyboard bridge); input topology is not yet known. UFS, WCN and
+	 * keyboard rails carry no initial mode, so they send no RPMh vote until a
+	 * consumer enables them. WCN ranges are the intersection of the stock BT
+	 * and WLAN consumer ranges.
 	 */
 	regulators-0 {
 		compatible = "qcom,pm8550-rpmh-regulators";
@@ -382,6 +382,23 @@
 			regulator-max-microvolt = <1000000>;
 		};
 
+		/*
+		 * REFGEN_VDD_A_0P9 / VDD_A_PCIE_0_0P9 on the SM8750 power grid
+		 * (stock ufsphy_mem vdda-refgen-supply, 206 mA, and the eUSB2 PHY
+		 * vdd_refgen-supply). The UFS and eUSB2 PHY bindings have no
+		 * refgen supply, so the PCIe0 PHY would be its only switchable
+		 * consumer and could turn the UFS/USB reference off on a PCIe
+		 * probe deferral or link failure. Keep it on, as the stock
+		 * active-set vote (L1F_AO) does.
+		 */
+		vreg_l1f_0p88: ldo1 {
+			regulator-name = "vreg_l1f_0p88";
+			regulator-min-microvolt = <880000>;
+			regulator-max-microvolt = <920000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-always-on;
+		};
+
 		vreg_l2f_1p2: ldo2 {
 			regulator-name = "vreg_l2f_1p2";
 			regulator-min-microvolt = <1200000>;
@@ -481,6 +498,44 @@
 
 &mpss_mem {
 	status = "disabled";
+};
+
+/*
+ * WCN7860 WLAN on PCIe0, as in the stock pcie@1c00000/cnss-peach nodes:
+ * PERST# TLMM102, CLKREQ# TLMM103, WAKE# TLMM104 (stock pinctrl equals
+ * pcie0_default_state). The stock PHY rails are CESTA-managed and not named;
+ * L1F is VDD_A_PCIE_0_0P9 per the SM8750 power grid note kept in the stock
+ * UFS PHY node, and L3G is the 1.2 V PHY rail that also feeds the UFS, USB
+ * and USB/DP PHYs. Enabled only by the supervised wlan-diag variant.
+ */
+&pcie0 {
+	pinctrl-0 = <&pcie0_default_state>;
+	pinctrl-names = "default";
+};
+
+&pcie0_phy {
+	vdda-phy-supply = <&vreg_l1f_0p88>;
+	vdda-pll-supply = <&vreg_l3g_1p2>;
+};
+
+&pcieport0 {
+	wake-gpios = <&tlmm 104 GPIO_ACTIVE_LOW>;
+	reset-gpios = <&tlmm 102 GPIO_ACTIVE_LOW>;
+
+	/* Supplies are the WLAN-function outputs of qcom,pmu_vreg_map. */
+	wifi@0 {
+		compatible = "pci17cb,110e";
+		reg = <0x10000 0x0 0x0 0x0 0x0>;
+
+		vddaon-supply = <&vreg_pmu_aon_0p9>;
+		vddwlcx-supply = <&vreg_pmu_wlcx_0p9>;
+		vddwlmx-supply = <&vreg_pmu_wlmx_0p9>;
+		vddrfa0p9-supply = <&vreg_pmu_rfa_0p9>;
+		vddrfa1p3-supply = <&vreg_pmu_rfa_1p3>;
+		vddrfa1p9-supply = <&vreg_pmu_rfa_1p9>;
+		vddpcie0p9-supply = <&vreg_pmu_pcie_0p9>;
+		vddpcie1p2-supply = <&vreg_pmu_pcie_1p2>;
+	};
 };
 
 &pm8550ve_f_gpios {
