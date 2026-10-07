@@ -407,6 +407,7 @@ static int setup_gsi_xfer(struct spi_transfer *xfer, struct spi_geni_master *mas
 	struct dma_slave_config config = {};
 	struct gpi_spi_config peripheral = {};
 	struct dma_async_tx_descriptor *tx_desc, *rx_desc;
+	u32 ddr_bw, previous_ddr_bw;
 	int ret;
 
 	config.peripheral_config = &peripheral;
@@ -447,6 +448,26 @@ static int setup_gsi_xfer(struct spi_transfer *xfer, struct spi_geni_master *mas
 	if (ret) {
 		dev_err(mas->dev, "Err in get_spi_clk_cfg() :%d\n", ret);
 		return ret;
+	}
+
+	/*
+	 * GPI fetches descriptors and transfers data through qup-memory. Reserve
+	 * full-duplex payload bandwidth at the actual SPI rate, including byte
+	 * padding for non-byte-sized words. Keeping the full-duplex vote avoids
+	 * changing it between a command write and its following read.
+	 */
+	ddr_bw = DIV_ROUND_UP_ULL((u64)mas->cur_sclk_hz * 2 *
+				DIV_ROUND_UP(xfer->bits_per_word, BITS_PER_BYTE),
+				(u64)mas->oversampling * peripheral.clk_div *
+				xfer->bits_per_word * 1000);
+	previous_ddr_bw = mas->se.icc_paths[GENI_TO_DDR].avg_bw;
+	if (ddr_bw != previous_ddr_bw) {
+		mas->se.icc_paths[GENI_TO_DDR].avg_bw = ddr_bw;
+		ret = geni_icc_set_bw(&mas->se);
+		if (ret) {
+			mas->se.icc_paths[GENI_TO_DDR].avg_bw = previous_ddr_bw;
+			return ret;
+		}
 	}
 
 	/*
