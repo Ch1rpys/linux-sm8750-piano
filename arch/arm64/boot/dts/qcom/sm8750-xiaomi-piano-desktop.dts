@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/* Combined desktop with the board's verified UFS supplies and reset. */
+#include "sm8750-xiaomi-piano-desktop-diag.dts"
+
+&ufs_mem_hc {
+	status = "okay";
+};
+
+&ufs_mem_phy {
+	status = "okay";
+};
