@@ -1820,7 +1820,7 @@ static int a6xx_gmu_rpmh_dep_votes_init(struct device *dev, u32 *votes,
 		}
 
 		/* Construct the vote */
-		votes[i] = GENMASK(31, 14) | (index << 8) | 0xff;
+		votes[i] = (0x3fff << 14) | (index << 8) | (0xff);
 	}
 
 	return 0;
@@ -1859,8 +1859,7 @@ static int a6xx_gmu_rpmh_votes_init(struct a6xx_gmu *gmu)
 	ret |= a6xx_gmu_rpmh_arc_votes_init(gmu->dev, gmu->cx_arc_votes,
 		gmu->gmu_freqs, gmu->nr_gmu_freqs, "cx.lvl", "mx.lvl");
 
-	/* MX dependency votes are indexed by GPU, not GMU, frequencies. */
-	ret |= a6xx_gmu_rpmh_dep_votes_init(&gpu->pdev->dev, gmu->dep_arc_votes,
+	ret |= a6xx_gmu_rpmh_dep_votes_init(gmu->dev, gmu->dep_arc_votes,
 		gmu->gpu_freqs, gmu->nr_gpu_freqs);
 
 	/* Build the interconnect votes */
