@@ -417,16 +417,6 @@
 	};
 };
 
-/*
- * The firmware owns the scanout while the native panel/MDSS path is disabled.
- * DISPCC probe programs its PLLs even without a display consumer. Do not let
- * a full distro module set overwrite the firmware display clock state.
- * Enable this provider together with the native display lifecycle.
- */
-&dispcc {
-	status = "disabled";
-};
-
 &mdss_dp0_out {
 	/* Stock limits the DP link clock to 540000 kHz (HBR2). */
 	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000>;
