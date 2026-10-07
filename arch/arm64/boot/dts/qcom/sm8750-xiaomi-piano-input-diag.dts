@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Combined RAM input diagnostic: the already tested keyboard bridge and
+ * NT36532E touch transport. Board wiring and power constraints stay in the
+ * base DTS. This still relies on firmware display/TDDI power (TD-013/014)
+ * and the keyboard's keep-awake policy (TD-012); it is not a product DTB.
+ */
+
+#include "sm8750-xiaomi-piano-kbd-diag.dts"
+
+&spi2 {
+	status = "okay";
+
+	touchscreen@0 {
+		status = "okay";
+	};
+};

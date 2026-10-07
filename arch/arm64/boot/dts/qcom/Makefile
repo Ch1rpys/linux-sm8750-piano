@@ -404,6 +404,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-adsp-diag.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-bt-diag.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-gpu-diag.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-iris-diag.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-input-diag.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-kbd-diag.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-mic-diag.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sm8750-xiaomi-piano-power-diag.dtb
