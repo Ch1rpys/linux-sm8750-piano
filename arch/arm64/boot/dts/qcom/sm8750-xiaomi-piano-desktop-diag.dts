@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Combined bounded RAM desktop development candidate. Reuse the capture
+ * graph and board wiring already tested by the individual diagnostics.
+ * Input, Bluetooth, GPU, ADSP/audio registration and read-only gauges are
+ * enabled together; this does not establish their concurrent operation.
+ * PCIe/WLAN supplies, USB host/DP, charging and UFS writes are not enabled.
+ */
+
+#include "sm8750-xiaomi-piano-mic-diag.dts"
+
+&gpi_dma1 {
+	status = "okay";
+};
+
+&gpi_dma2 {
+	status = "okay";
+};
+
+&spi2 {
+	status = "okay";
+
+	touchscreen@0 {
+		status = "okay";
+	};
+};
+
+&i2c5 {
+	status = "okay";
+};
+
+&i2c6 {
+	status = "okay";
+
+	keyboard@4c {
+		status = "okay";
+	};
+};
+
+&i2c11 {
+	status = "okay";
+};
+
+&vreg_l11b_1p8 {
+	regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+};
+
+&vreg_l14b_3p3 {
+	regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+};
+
+&qupv3_2 {
+	status = "okay";
+};
+
+&uart14 {
+	status = "okay";
+};
+
+&wcn7860_pmu {
+	status = "okay";
+};
+
+&gpu {
+	status = "okay";
+};
