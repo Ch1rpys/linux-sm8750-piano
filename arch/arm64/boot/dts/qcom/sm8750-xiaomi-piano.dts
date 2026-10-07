@@ -69,17 +69,43 @@
 					<&dispcc MDSS_INT2_GDSC>;
 			required-opps = <&rpmhpd_opp_nom_l1>;
 			/*
-			 * Temporary firmware-scanout vote; remove with native MDSS.
-			 * Xiaomi display-drivers aa06fd1757c28dce96fbe4e04d4530ec21b52aac:
-			 * msm_drv.c uses 3 GB/s average/peak for continuous splash.
+			 * The scanout fetches from DDR on the same path as the
+			 * native MDSS "mdp0-mem". Once interconnect sync_state
+			 * drops the boot-time floor, nothing else keeps that
+			 * path up, so the framebuffer votes its own bandwidth.
 			 */
 			interconnects = <&mmss_noc MASTER_MDP QCOM_ICC_TAG_ALWAYS
 					 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
-			qcom,boot-bandwidth-kBps = <3000000 3000000>;
+			interconnect-names = "mdp0-mem";
+			operating-points-v2 = <&framebuffer_opp_table>;
 			width = <3200>;
 			height = <2136>;
 			stride = <(3200 * 4)>;
 			format = "x8r8g8b8";
+
+			/*
+			 * Firmware scanout mode: 3200x2136 x8r8g8b8 (4 bytes
+			 * per pixel) at 120 Hz, measured from the INTF1/INTF2
+			 * frame counters (+60 per 0.5 s); vertical total 2310
+			 * lines (2136 active, front porch 68, back porch 104,
+			 * sync 2) from the stock 120 Hz panel timing.
+			 *
+			 * opp-avg-kBps: the frame read once per refresh,
+			 *   3200 * 2136 * 4 B * 120 Hz = 3280896 kB/s.
+			 * opp-peak-kBps: each active line is read within one
+			 *   line time of the 2310-line frame, plus the DPU bus
+			 *   inefficiency margin of 120/100 for SM8750, as in
+			 *   _dpu_plane_calc_bw() and _dpu_core_perf_calc_bw():
+			 *   3200 * 2310 * 4 B * 120 Hz * 1.2 = 4257792 kB/s.
+			 */
+			framebuffer_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-0 {
+					opp-peak-kBps = <4257792>;
+					opp-avg-kBps = <3280896>;
+				};
+			};
 		};
 	};
 
