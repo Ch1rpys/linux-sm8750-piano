@@ -2,9 +2,9 @@
 /*
  * Combined bounded RAM desktop development candidate. Reuse the capture
  * graph and board wiring already tested by the individual diagnostics.
- * Input, Bluetooth, GPU, ADSP/audio registration and read-only gauges are
- * enabled together; this does not establish their concurrent operation.
- * PCIe/WLAN supplies, USB host/DP, charging and UFS writes are not enabled.
+ * Input, Bluetooth, WLAN, GPU, ADSP/audio registration and read-only gauges
+ * are enabled together; this does not establish their concurrent operation.
+ * USB host/DP, charging and UFS writes are not enabled.
  */
 
 #include "sm8750-xiaomi-piano-mic-diag.dts"
@@ -58,6 +58,14 @@
 };
 
 &wcn7860_pmu {
+	status = "okay";
+};
+
+&pcie0 {
+	status = "okay";
+};
+
+&pcie0_phy {
 	status = "okay";
 };
 
