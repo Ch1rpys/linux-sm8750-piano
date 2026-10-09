@@ -1,8 +1,42 @@
 // SPDX-License-Identifier: BSD-3-Clause
-/* Combined desktop with the board's verified UFS supplies and reset. */
-#include "sm8750-xiaomi-piano-desktop-diag.dts"
+/*
+ * Xiaomi Pad 8 Pro (piano) as the installed desktop uses it: the board
+ * description plus the functions enabled on top of it. Each block was first
+ * enabled on its own in a supervised RAM diagnostic (kept on the piano/diag
+ * branch); enabling them together does not by itself establish their
+ * concurrent operation. USB host/DP and charger control are not enabled.
+ */
+
+#include "sm8750-xiaomi-piano.dts"
 
 / {
+	/* Mono capture from DMIC4 through LPASS TX and the ADSP. */
+	sound {
+		compatible = "qcom,sm8750-sndcard", "qcom,sm8450-sndcard";
+		model = "Piano-Capture-Diag";
+		aux-devs = <&lpass_vamacro>;
+
+		/* The DMIC clock gates live in VA even when samples use TX. */
+		audio-routing = "TX DMIC4", "VA DMIC4",
+				"VA DMIC4", "VA_MCLK";
+
+		capture-dai-link {
+			link-name = "Internal DMIC Capture";
+
+			cpu {
+				sound-dai = <&q6apmbedai TX_CODEC_DMA_TX_3>;
+			};
+
+			codec {
+				sound-dai = <&lpass_txmacro 0>;
+			};
+
+			platform {
+				sound-dai = <&q6apm>;
+			};
+		};
+	};
+
 	/*
 	 * The charger firmware speaks Xiaomi MCA on the battery manager owner.
 	 * No connector yet: DWC3 stays a peripheral without a role switch for
@@ -15,6 +49,120 @@
 	};
 };
 
+&remoteproc_adsp {
+	firmware-name = "qcom/sm8750/piano/adsp.mdt",
+			"qcom/sm8750/piano/adsp_dtb.mdt";
+	status = "okay";
+};
+
+&lpass_rxmacro {
+	status = "disabled";
+};
+
+&lpass_tlmm {
+	dmic4_default: dmic4-default-state {
+		clk-pins {
+			pins = "gpio12";
+			function = "dmic3_clk";
+			drive-strength = <4>;
+			output-high;
+		};
+
+		data-pins {
+			pins = "gpio13";
+			function = "dmic3_data";
+			drive-strength = <4>;
+			input-enable;
+		};
+	};
+};
+
+&lpass_txmacro {
+	pinctrl-names = "default";
+	pinctrl-0 = <&dmic4_default>;
+};
+
+&lpass_vamacro {
+	/* Stock TX requests divide-by-4 from the 9.6 MHz DMIC source. */
+	qcom,dmic-sample-rate = <2400000>;
+};
+
+&lpass_wsa2macro {
+	status = "disabled";
+};
+
+&lpass_wsamacro {
+	status = "disabled";
+};
+
+/* GENI engines whose FIFO the firmware disabled transfer through GPI DMA. */
+&gpi_dma1 {
+	status = "okay";
+};
+
+&gpi_dma2 {
+	status = "okay";
+};
+
+&spi2 {
+	status = "okay";
+
+	touchscreen@0 {
+		status = "okay";
+	};
+};
+
+/* Fuel gauges (I2C5, I2C11) and keyboard bridge (I2C6). */
+&i2c5 {
+	status = "okay";
+};
+
+&i2c6 {
+	status = "okay";
+
+	keyboard@4c {
+		status = "okay";
+	};
+};
+
+&i2c11 {
+	status = "okay";
+};
+
+&vreg_l11b_1p8 {
+	regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+};
+
+&vreg_l14b_3p3 {
+	regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+};
+
+&qupv3_2 {
+	status = "okay";
+};
+
+/* WCN7860: Bluetooth on UART14, WLAN on PCIe0. */
+&uart14 {
+	status = "okay";
+};
+
+&wcn7860_pmu {
+	status = "okay";
+};
+
+&pcie0 {
+	status = "okay";
+};
+
+&pcie0_phy {
+	status = "okay";
+};
+
+&gpu {
+	status = "okay";
+};
+
+/* The root file system. */
 &ufs_mem_hc {
 	status = "okay";
 };
