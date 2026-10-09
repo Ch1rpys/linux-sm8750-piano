@@ -429,6 +429,118 @@
  * only through a private RAM-candidate firmware directory. The GPU itself
  * stays disabled here; only the supervised gpu-diag variant enables it.
  */
+/*
+ * CPU passive trips at the stock first-stage temperatures. Stock throttles
+ * the cluster (cpufreq) at 95C on these zones and pauses the core at 118C on
+ * the others; here every per-core zone throttles its cluster, the only CPU
+ * cooling device available. Stock has no kernel mitigation on the CPUSS
+ * zones, so their passive trip is dropped and only hot/critical remain.
+ */
+&cpu_0_0_0_alert {
+	temperature = <95000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_0_1_alert {
+	temperature = <118000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_1_0_alert {
+	temperature = <118000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_1_1_alert {
+	temperature = <118000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_2_0_alert {
+	temperature = <95000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_2_1_alert {
+	temperature = <95000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_3_0_alert {
+	temperature = <118000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_3_1_alert {
+	temperature = <118000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_4_0_alert {
+	temperature = <95000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_4_1_alert {
+	temperature = <95000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_5_0_alert {
+	temperature = <118000>;
+	hysteresis = <8000>;
+};
+
+&cpu_0_5_1_alert {
+	temperature = <118000>;
+	hysteresis = <8000>;
+};
+
+&cpu_1_0_0_alert {
+	temperature = <95000>;
+	hysteresis = <8000>;
+};
+
+&cpu_1_0_1_alert {
+	temperature = <95000>;
+	hysteresis = <8000>;
+};
+
+&cpu_1_1_0_alert {
+	temperature = <95000>;
+	hysteresis = <8000>;
+};
+
+&cpu_1_1_1_alert {
+	temperature = <95000>;
+	hysteresis = <8000>;
+};
+
+&{/thermal-zones/cpuss-0-0-thermal} {
+	/delete-property/ polling-delay-passive;
+	/delete-node/ cooling-maps;
+};
+
+&{/thermal-zones/cpuss-0-1-thermal} {
+	/delete-property/ polling-delay-passive;
+	/delete-node/ cooling-maps;
+};
+
+&{/thermal-zones/cpuss-1-0-thermal} {
+	/delete-property/ polling-delay-passive;
+	/delete-node/ cooling-maps;
+};
+
+&{/thermal-zones/cpuss-1-1-thermal} {
+	/delete-property/ polling-delay-passive;
+	/delete-node/ cooling-maps;
+};
+
+/delete-node/ &cpuss_0_0_alert;
+/delete-node/ &cpuss_0_1_alert;
+/delete-node/ &cpuss_1_0_alert;
+/delete-node/ &cpuss_1_1_alert;
+
 &gpu_zap_shader {
 	firmware-name = "qcom/sm8750/xiaomi/piano/gen80000_zap.mbn";
 };
