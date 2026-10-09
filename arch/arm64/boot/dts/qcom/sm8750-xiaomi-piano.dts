@@ -437,6 +437,11 @@
 	reg = <0x0 0x80000000 0x0 0x1200000>;
 };
 
+/* Stock sets the TLMM I2C pull-up (qcom,i2c_pull) on the backlight buses. */
+&hub_i2c3_data_clk {
+	bias-pull-up = <2200>;
+};
+
 /*
  * Keep both buses disabled outside the supervised power-diag variant. SE5 is
  * marked multi-EE (qcom,shared) in the stock tree; this kernel has no GPI
@@ -484,10 +489,43 @@
 	};
 };
 
+&i2c8 {
+	/* Stock has no qcom,clk-freq-out, so the vendor GENI driver uses 400 kHz. */
+	clock-frequency = <400000>;
+
+	/* Stock ktz8866,id = <1>; programmed together with the chip on I2C hub 3. */
+	backlight_secondary: backlight@11 {
+		compatible = "kinetic,ktz8866";
+		reg = <0x11>;
+		kinetic,secondary;
+	};
+};
+
 &i2c11 {
 	fuel-gauge@55 {
 		compatible = "ti,bq27z561";
 		reg = <0x55>;
+	};
+};
+
+/*
+ * The two KTZ8866 each drive half of the LED strings of the one LCD panel.
+ * The firmware turns them on and sets up the panel bias; the bias outputs
+ * are the panel's supplies (stock display_panel_vsp/vsn on GPIO117/118) and
+ * are not described here. Both buses stay disabled in the board DTB.
+ */
+&i2c_hub_3 {
+	/* Stock has no qcom,clk-freq-out, so the vendor GENI driver uses 400 kHz. */
+	clock-frequency = <400000>;
+
+	/* Stock ktz8866,id = <0>, the only one with ktz8866,hwen-gpio. */
+	backlight: backlight@11 {
+		compatible = "kinetic,ktz8866";
+		reg = <0x11>;
+		enable-gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
+		/* The stock driver always writes BL_EN 0x7f/0x3f: six sinks. */
+		current-num-sinks = <6>;
+		kinetic,secondary-backlight = <&backlight_secondary>;
 	};
 };
 
@@ -577,6 +615,10 @@
 &qup_i2c6_data_clk {
 	/delete-property/ bias-pull-up;
 	bias-disable;
+};
+
+&qup_i2c8_data_clk {
+	bias-pull-up = <2200>;
 };
 
 &qupv3_1 {
