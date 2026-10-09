@@ -560,6 +560,24 @@
 	qcom,squelch-detector-bp = <(-3000)>;
 };
 
+/*
+ * The RTC counter is not writable from HLOS; rtc-pm8xxx keeps the wall-clock
+ * offset in an SDAM cell instead. Stock Android describes SDAM2 bytes 0x48,
+ * 0x58, 0x59, 0x76-0x7b and 0x9a-0xa2 and keeps its own offset in userspace,
+ * so 0x72-0x75 is unclaimed in the stock DT; same slot as on the SM8750
+ * Odin 3 (ROCKNIX).
+ */
+&pmk8550_rtc {
+	nvmem-cells = <&rtc_offset>;
+	nvmem-cell-names = "offset";
+};
+
+&pmk8550_sdam_2 {
+	rtc_offset: rtc-offset@72 {
+		reg = <0x72 0x4>;
+	};
+};
+
 &pon_pwrkey {
 	status = "okay";
 };
