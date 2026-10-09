@@ -167,6 +167,19 @@
 	status = "okay";
 };
 
+/* Both KTZ8866 backlight chips: the panel brightness. */
+&i2c_master_hub_0 {
+	status = "okay";
+};
+
+&i2c_hub_3 {
+	status = "okay";
+};
+
+&i2c8 {
+	status = "okay";
+};
+
 &vreg_l11b_1p8 {
 	regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 };
