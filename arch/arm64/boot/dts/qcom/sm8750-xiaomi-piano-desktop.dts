@@ -19,8 +19,40 @@
 	 * RAM diagnostic of its own.
 	 */
 	sound {
-		compatible = "qcom,sm8750-sndcard", "qcom,sm8450-sndcard";
-		model = "Piano-Capture-Diag";
+		compatible = "xiaomi,piano-sndcard", "qcom,sm8750-sndcard",
+			     "qcom,sm8450-sndcard";
+		model = "Xiaomi-Pad-8-Pro";
+		pinctrl-0 = <&sec_tdm_default>;
+		pinctrl-names = "default";
+
+		/*
+		 * The four speaker amplifiers on the secondary TDM interface, as
+		 * stock runs it (backend TDM-LPAIF-RX-SECONDARY, 48 kHz, 4 x
+		 * 32-bit slots, slot mask 15; the vendor log shows a 6.144 MHz bit
+		 * clock). The SoC provides the clocks; each amplifier takes its
+		 * slot from the vendor preset. No speaker protection runs.
+		 */
+		speaker-dai-link {
+			link-name = "Speaker Playback";
+
+			cpu {
+				sound-dai = <&q6apmbedai SECONDARY_TDM_RX_0>;
+				dai-tdm-slot-num = <4>;
+				dai-tdm-slot-width = <32>;
+				dai-tdm-slot-rx-mask = <1 1 1 1>;
+			};
+
+			codec {
+				sound-dai = <&speaker_top_left>, <&speaker_top_right>,
+					    <&speaker_bottom_left>, <&speaker_bottom_right>;
+				dai-tdm-slot-num = <4>;
+				dai-tdm-slot-width = <32>;
+			};
+
+			platform {
+				sound-dai = <&q6apm>;
+			};
+		};
 
 		va-dai-link {
 			link-name = "VA Capture";
@@ -48,6 +80,24 @@
 	pmic-glink {
 		compatible = "xiaomi,piano-pmic-glink", "qcom,sm8750-pmic-glink",
 			     "qcom,sm8550-pmic-glink", "qcom,pmic-glink";
+	};
+};
+
+/*
+ * The secondary TDM bit clock, without coupling. Stock sets
+ * qcom,tdm-clk-attribute = <4> (inverted) for its vendor PRM path, but with
+ * that attribute the ADSP refused to start the port on piano (speakers-2);
+ * with 1 the port starts and the amplifiers play (speakers-3, 2026-10-10).
+ */
+&q6apmbedai {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	dai@28 {
+		reg = <SECONDARY_TDM_RX_0>;
+		clocks = <&q6prmcc LPASS_CLK_ID_SEC_TDM_IBIT
+				   LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
+		clock-names = "bclk";
 	};
 };
 
@@ -167,7 +217,11 @@
 	status = "okay";
 };
 
-/* Both KTZ8866 backlight chips: the panel brightness. */
+/* The speaker amplifiers (I2C hub 0) and both KTZ8866 backlight chips (hub 3). */
+&i2c_hub_0 {
+	status = "okay";
+};
+
 &i2c_master_hub_0 {
 	status = "okay";
 };
