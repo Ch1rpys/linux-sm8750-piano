@@ -10,25 +10,27 @@
 #include "sm8750-xiaomi-piano.dts"
 
 / {
-	/* Mono capture from DMIC4 through LPASS TX and the ADSP. */
+	/*
+	 * Internal DMICs through the LPASS VA macro and the ADSP. Every stock DMIC
+	 * line reaches both the TX and the VA macro ("Digital MicN" feeds TX DMICn
+	 * and VA DMICn) and the DMIC clock control sits in VA for both; the VA
+	 * path owns the clock itself. Which DMIC feeds which decimator is a mixer
+	 * (UCM) choice. Unlike the other blocks, this route has not yet run in a
+	 * RAM diagnostic of its own.
+	 */
 	sound {
 		compatible = "qcom,sm8750-sndcard", "qcom,sm8450-sndcard";
 		model = "Piano-Capture-Diag";
-		aux-devs = <&lpass_vamacro>;
 
-		/* The DMIC clock gates live in VA even when samples use TX. */
-		audio-routing = "TX DMIC4", "VA DMIC4",
-				"VA DMIC4", "VA_MCLK";
-
-		capture-dai-link {
-			link-name = "Internal DMIC Capture";
+		va-dai-link {
+			link-name = "VA Capture";
 
 			cpu {
-				sound-dai = <&q6apmbedai TX_CODEC_DMA_TX_3>;
+				sound-dai = <&q6apmbedai VA_CODEC_DMA_TX_0>;
 			};
 
 			codec {
-				sound-dai = <&lpass_txmacro 0>;
+				sound-dai = <&lpass_vamacro 0>;
 			};
 
 			platform {
@@ -59,8 +61,29 @@
 	status = "disabled";
 };
 
+/* Stock p81 active states of the four DMIC pairs: 4 mA, not 8 mA. */
+&dmic01_default {
+	clk-pins {
+		drive-strength = <4>;
+	};
+
+	data-pins {
+		drive-strength = <4>;
+	};
+};
+
+&dmic23_default {
+	clk-pins {
+		drive-strength = <4>;
+	};
+
+	data-pins {
+		drive-strength = <4>;
+	};
+};
+
 &lpass_tlmm {
-	dmic4_default: dmic4-default-state {
+	dmic45_default: dmic45-default-state {
 		clk-pins {
 			pins = "gpio12";
 			function = "dmic3_clk";
@@ -75,15 +98,30 @@
 			input-enable;
 		};
 	};
-};
 
-&lpass_txmacro {
-	pinctrl-names = "default";
-	pinctrl-0 = <&dmic4_default>;
+	dmic67_default: dmic67-default-state {
+		clk-pins {
+			pins = "gpio17";
+			function = "dmic4_clk";
+			drive-strength = <4>;
+			output-high;
+		};
+
+		data-pins {
+			pins = "gpio18";
+			function = "dmic4_data";
+			drive-strength = <4>;
+			input-enable;
+		};
+	};
 };
 
 &lpass_vamacro {
-	/* Stock TX requests divide-by-4 from the 9.6 MHz DMIC source. */
+	pinctrl-0 = <&dmic01_default>, <&dmic23_default>,
+		    <&dmic45_default>, <&dmic67_default>;
+	pinctrl-names = "default";
+
+	/* Stock divider 4 at 48 kHz for TX and VA, from the 9.6 MHz DMIC source. */
 	qcom,dmic-sample-rate = <2400000>;
 };
 
