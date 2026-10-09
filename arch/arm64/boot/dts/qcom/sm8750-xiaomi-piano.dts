@@ -569,6 +569,11 @@
 	reg = <0x0 0x80000000 0x0 0x1200000>;
 };
 
+/* Stock sets the TLMM I2C pull-up (qcom,i2c_pull) on the speaker amplifier bus. */
+&hub_i2c0_data_clk {
+	bias-pull-up = <2200>;
+};
+
 /* Stock sets the TLMM I2C pull-up (qcom,i2c_pull) on the backlight buses. */
 &hub_i2c3_data_clk {
 	bias-pull-up = <2200>;
@@ -637,6 +642,71 @@
 	fuel-gauge@55 {
 		compatible = "ti,bq27z561";
 		reg = <0x55>;
+	};
+};
+
+/*
+ * Four FourSemi FS19xx speaker amplifiers (DEVID 0x2900 on all four in the
+ * stock boot log), each with its own shutdown and interrupt line. The
+ * register setup, including which TDM slot each one plays, comes from the
+ * vendor preset (stock /odm/firmware/fs19xx.fsm, one block per address):
+ * slot 0 is 0x35, 1 is 0x37, 2 is 0x34, 3 is 0x36. Stock runs the bus at
+ * 400 kHz (no qcom,clk-freq-out) and does not request the interrupts.
+ * The name prefixes are the positions in landscape with the front camera on
+ * top, from the preset positions (0x34 LTOP, 0x35 RTOP, 0x37 RBTM, 0x36 LBTM
+ * in the vendor's portrait terms); stock pinctrl names call 0x37 bottom-left
+ * and 0x36 bottom-right instead, so the bottom pair is still to be checked
+ * by ear. The bus stays disabled in the board DTB.
+ */
+&i2c_hub_0 {
+	clock-frequency = <400000>;
+
+	speaker_bottom_left: audio-codec@34 {
+		compatible = "foursemi,fs19xx";
+		reg = <0x34>;
+		#sound-dai-cells = <0>;
+		interrupts-extended = <&tlmm 66 IRQ_TYPE_LEVEL_LOW>;
+		reset-gpios = <&tlmm 128 GPIO_ACTIVE_LOW>;
+		firmware-name = "foursemi/piano/fs19xx.fsm";
+		pinctrl-0 = <&speaker_amp_irq_bl>;
+		pinctrl-names = "default";
+		sound-name-prefix = "Bottom Left";
+	};
+
+	speaker_top_left: audio-codec@35 {
+		compatible = "foursemi,fs19xx";
+		reg = <0x35>;
+		#sound-dai-cells = <0>;
+		interrupts-extended = <&tlmm 84 IRQ_TYPE_LEVEL_LOW>;
+		reset-gpios = <&tlmm 129 GPIO_ACTIVE_LOW>;
+		firmware-name = "foursemi/piano/fs19xx.fsm";
+		pinctrl-0 = <&speaker_amp_irq_tl>;
+		pinctrl-names = "default";
+		sound-name-prefix = "Top Left";
+	};
+
+	speaker_bottom_right: audio-codec@36 {
+		compatible = "foursemi,fs19xx";
+		reg = <0x36>;
+		#sound-dai-cells = <0>;
+		interrupts-extended = <&tlmm 81 IRQ_TYPE_LEVEL_LOW>;
+		reset-gpios = <&tlmm 107 GPIO_ACTIVE_LOW>;
+		firmware-name = "foursemi/piano/fs19xx.fsm";
+		pinctrl-0 = <&speaker_amp_irq_br>;
+		pinctrl-names = "default";
+		sound-name-prefix = "Bottom Right";
+	};
+
+	speaker_top_right: audio-codec@37 {
+		compatible = "foursemi,fs19xx";
+		reg = <0x37>;
+		#sound-dai-cells = <0>;
+		interrupts-extended = <&tlmm 67 IRQ_TYPE_LEVEL_LOW>;
+		reset-gpios = <&tlmm 108 GPIO_ACTIVE_LOW>;
+		firmware-name = "foursemi/piano/fs19xx.fsm";
+		pinctrl-0 = <&speaker_amp_irq_tr>;
+		pinctrl-names = "default";
+		sound-name-prefix = "Top Right";
 	};
 };
 
@@ -790,6 +860,73 @@
 			drive-strength = <2>;
 			bias-disable;
 		};
+	};
+
+	/*
+	 * Stock sec_tdm_pinctrl (tdm1_{clk,ws,din,dout}_active): the secondary
+	 * LPAIF TDM interface to the speaker amplifiers, 8 mA, no bias. DATA0
+	 * is the input (stock tdm1_din, amplifier feedback), DATA1 the output.
+	 */
+	sec_tdm_default: sec-tdm-default-state {
+		sck-pins {
+			pins = "gpio121";
+			function = "i2s1_sck";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		data0-pins {
+			pins = "gpio122";
+			function = "i2s1_data0";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		ws-pins {
+			pins = "gpio123";
+			function = "i2s1_ws";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		data1-pins {
+			pins = "gpio124";
+			function = "i2s1_data1";
+			drive-strength = <8>;
+			bias-disable;
+		};
+	};
+
+	/*
+	 * Stock fs19xx_irq_active_*: no bias, 2 mA (named for portrait). Their
+	 * input-enable is left to the GPIO input direction on this TLMM.
+	 */
+	speaker_amp_irq_bl: speaker-amp-irq-bl-state {
+		pins = "gpio66";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	speaker_amp_irq_tr: speaker-amp-irq-tr-state {
+		pins = "gpio67";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	speaker_amp_irq_br: speaker-amp-irq-br-state {
+		pins = "gpio81";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	speaker_amp_irq_tl: speaker-amp-irq-tl-state {
+		pins = "gpio84";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
 	};
 
 	/* Stock cnss_wlan_en_sleep: WLAN held off unless its sequencer target is on. */
