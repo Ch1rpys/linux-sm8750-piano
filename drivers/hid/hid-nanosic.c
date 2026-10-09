@@ -6,11 +6,13 @@
  * Report declarations match the piano stock module's HID interface.
  */
 
+#include <linux/completion.h>
 #include <linux/delay.h>
 #include <linux/firmware.h>
 #include <linux/gpio/consumer.h>
 #include <linux/hid.h>
 #include <linux/i2c.h>
+#include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
@@ -22,6 +24,11 @@
 
 #define NANOSIC_VENDOR_ID	0x15d9
 #define NANOSIC_APP_CMD_SIZE	66
+
+/* Attach state byte of the keyboard's 0x38/0xa2 report. */
+#define NANOSIC_ATTACH_CONNECTED	BIT(0)
+#define NANOSIC_ATTACH_POWERED		BIT(1)
+#define NANOSIC_ATTACH_TIMEOUT_MS	500
 
 static const u8 nanosic_keyboard_rdesc[] = {
 	0x05, 0x01, 0x09, 0x06, 0xa1, 0x01, 0x85, 0x05,
@@ -118,6 +125,10 @@ struct nanosic {
 	struct gpio_desc *wake_gpio;
 	struct mutex lock;
 	struct hid_device *hid[NANOSIC_HID_COUNT];
+	struct input_dev *tablet;
+	struct completion attach_known;
+	u8 attach;
+	bool tablet_registered;
 	bool powered;
 };
 
@@ -342,9 +353,24 @@ static int nanosic_handle_report(struct nanosic *nano, const struct nanosic_repo
 
 	if (data[0] == 0x23 && report->wire_size == 32 &&
 	    data[2] == 0x38 && data[3] == 0x80 && data[4] == 0xa2) {
-		if (!(data[9] & BIT(0)))
+		u8 attach = data[9];
+
+		nano->attach = attach;
+		complete_all(&nano->attach_known);
+		/*
+		 * Only the keyboard tells laptop from tablet use: the folio
+		 * hall sensors read the same for a cover folded back and for
+		 * no cover at all. The input core drops unchanged states.
+		 */
+		if (nano->tablet_registered) {
+			input_report_switch(nano->tablet, SW_TABLET_MODE,
+					    !(attach & NANOSIC_ATTACH_CONNECTED));
+			input_sync(nano->tablet);
+		}
+		if (!(attach & NANOSIC_ATTACH_CONNECTED))
 			nanosic_destroy_hid(nano);
-		else if ((data[9] & 3) == 3)
+		else if ((attach & (NANOSIC_ATTACH_CONNECTED | NANOSIC_ATTACH_POWERED)) ==
+			 (NANOSIC_ATTACH_CONNECTED | NANOSIC_ATTACH_POWERED))
 			return nanosic_register_hid(nano);
 		return 0;
 	}
@@ -355,6 +381,40 @@ static int nanosic_handle_report(struct nanosic *nano, const struct nanosic_repo
 			return hid_input_report(nano->hid[i], HID_INPUT_REPORT,
 						data, report->hid_size, 1);
 	return 0;
+}
+
+/*
+ * Allocated before the interrupt is requested, so that devres unregisters it
+ * only after the interrupt is gone; registered once the attach state is known.
+ */
+static int nanosic_alloc_tablet(struct nanosic *nano)
+{
+	struct device *dev = &nano->client->dev;
+	struct input_dev *input;
+
+	input = devm_input_allocate_device(dev);
+	if (!input)
+		return -ENOMEM;
+	input->name = "Xiaomi Keyboard Tablet Mode";
+	input->phys = dev_name(dev);
+	input->id.bustype = BUS_I2C;
+	input->id.vendor = NANOSIC_VENDOR_ID;
+	input_set_capability(input, EV_SW, SW_TABLET_MODE);
+	nano->tablet = input;
+	return 0;
+}
+
+static int nanosic_register_tablet(struct nanosic *nano)
+{
+	int ret;
+
+	mutex_lock(&nano->lock);
+	__assign_bit(SW_TABLET_MODE, nano->tablet->sw,
+		     !(nano->attach & NANOSIC_ATTACH_CONNECTED));
+	ret = input_register_device(nano->tablet);
+	nano->tablet_registered = !ret;
+	mutex_unlock(&nano->lock);
+	return ret;
 }
 
 static irqreturn_t nanosic_irq(int irq, void *data)
@@ -435,6 +495,7 @@ static int nanosic_probe(struct i2c_client *client)
 		return -ENOMEM;
 	nano->client = client;
 	mutex_init(&nano->lock);
+	init_completion(&nano->attach_known);
 	i2c_set_clientdata(client, nano);
 	device_property_read_string(dev, "firmware-name", &fw_name);
 	ret = request_firmware(&image, fw_name, dev);
@@ -479,6 +540,9 @@ static int nanosic_probe(struct i2c_client *client)
 	ret = devm_add_action_or_reset(dev, nanosic_destroy_hid, nano);
 	if (ret)
 		goto out;
+	ret = nanosic_alloc_tablet(nano);
+	if (ret)
+		goto out;
 	ret = devm_request_threaded_irq(dev, client->irq, NULL, nanosic_irq,
 					IRQF_ONESHOT, dev_name(dev), nano);
 	if (ret)
@@ -489,6 +553,18 @@ static int nanosic_probe(struct i2c_client *client)
 	if (!ret)
 		ret = nanosic_app_command(nano, 0xa1, 1);
 	mutex_unlock(&nano->lock);
+	if (ret)
+		goto out;
+
+	/*
+	 * 0xa1 asks for the attach state; the MCU answers with the 0xa2 report
+	 * whether or not a keyboard is there. Register the switch with that
+	 * state rather than flipping it right after registration.
+	 */
+	if (!wait_for_completion_timeout(&nano->attach_known,
+					 msecs_to_jiffies(NANOSIC_ATTACH_TIMEOUT_MS)))
+		dev_warn(dev, "no attach state from the MCU, assuming no keyboard\n");
+	ret = nanosic_register_tablet(nano);
 out:
 	release_firmware(image);
 	return ret;

@@ -107,6 +107,7 @@ static int nanosic_test_init(struct kunit *test)
 	bus->header_state = 1;
 	bus->verified_state = 3;
 	mutex_init(&bus->nano.lock);
+	init_completion(&bus->nano.attach_known);
 	dev = kunit_device_register(test, "nanosic-transport-test");
 	if (IS_ERR(dev))
 		return PTR_ERR(dev);
@@ -231,6 +232,40 @@ static void nanosic_test_hid_attachment(struct kunit *test)
 		KUNIT_EXPECT_PTR_EQ(test, bus->nano.hid[i], NULL);
 }
 
+static void nanosic_test_tablet_mode(struct kunit *test)
+{
+	struct nanosic_test_bus *bus = test->priv;
+	u8 data[32] = { 0x23, 0x31, 0x38, 0x80, 0xa2 };
+	struct nanosic_report report = { .data = data, .wire_size = sizeof(data) };
+
+	KUNIT_ASSERT_EQ(test, nanosic_alloc_tablet(&bus->nano), 0);
+	KUNIT_EXPECT_FALSE(test, completion_done(&bus->nano.attach_known));
+	/* Reports before registration only record the state. */
+	data[9] = 0x23;
+	KUNIT_ASSERT_EQ(test, nanosic_handle_report(&bus->nano, &report), 0);
+	KUNIT_EXPECT_TRUE(test, completion_done(&bus->nano.attach_known));
+	KUNIT_ASSERT_EQ(test, nanosic_register_tablet(&bus->nano), 0);
+	KUNIT_EXPECT_FALSE(test, test_bit(SW_TABLET_MODE, bus->nano.tablet->sw));
+	data[9] = 0;
+	KUNIT_ASSERT_EQ(test, nanosic_handle_report(&bus->nano, &report), 0);
+	KUNIT_EXPECT_TRUE(test, test_bit(SW_TABLET_MODE, bus->nano.tablet->sw));
+	/* Connected but not yet powered is already laptop mode. */
+	data[9] = 1;
+	KUNIT_ASSERT_EQ(test, nanosic_handle_report(&bus->nano, &report), 0);
+	KUNIT_EXPECT_FALSE(test, test_bit(SW_TABLET_MODE, bus->nano.tablet->sw));
+	KUNIT_EXPECT_PTR_EQ(test, bus->nano.hid[0], NULL);
+}
+
+static void nanosic_test_tablet_mode_without_keyboard(struct kunit *test)
+{
+	struct nanosic_test_bus *bus = test->priv;
+
+	/* No answer before the timeout: start in tablet mode. */
+	KUNIT_ASSERT_EQ(test, nanosic_alloc_tablet(&bus->nano), 0);
+	KUNIT_ASSERT_EQ(test, nanosic_register_tablet(&bus->nano), 0);
+	KUNIT_EXPECT_TRUE(test, test_bit(SW_TABLET_MODE, bus->nano.tablet->sw));
+}
+
 static void nanosic_test_key_events(struct kunit *test)
 {
 	struct nanosic_test_bus *bus = test->priv;
@@ -287,6 +322,8 @@ static struct kunit_case nanosic_transport_cases[] = {
 	KUNIT_CASE(nanosic_test_boot_rejects_state),
 	KUNIT_CASE(nanosic_test_boot_rejects_verification),
 	KUNIT_CASE(nanosic_test_hid_attachment),
+	KUNIT_CASE(nanosic_test_tablet_mode),
+	KUNIT_CASE(nanosic_test_tablet_mode_without_keyboard),
 	KUNIT_CASE(nanosic_test_key_events),
 	KUNIT_CASE(nanosic_test_touch_events),
 	{}
