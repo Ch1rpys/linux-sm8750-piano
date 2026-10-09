@@ -628,6 +628,18 @@
 	};
 };
 
+/*
+ * The trace NOC has no consumer on this board (no CoreSight trace is used),
+ * and it never binds: the AMBA bus maps an unreadable PrimeCell/CoreSight ID
+ * to -EPROBE_DEFER, so piano lists "amba 109ab000.tn: deferred probe pending"
+ * at the deferred probe timeout (BigfootACA reports that the ID reads as 0 on
+ * this part). From BigfootACA/linux da72dd806bf0 (Junhao Xie, BSD-3-Clause);
+ * referenced by path because sm8750.dtsi has no label for the node.
+ */
+&{/soc@0/tn@109ab000} {
+	status = "disabled";
+};
+
 &trust_ui_vm_mem {
 	reg = <0x0 0xf3800000 0x0 0x5000000>;
 };
