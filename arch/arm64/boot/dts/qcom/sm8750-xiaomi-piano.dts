@@ -9,6 +9,7 @@
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
 #include "sm8750.dtsi"
+#include "pm8550.dtsi"
 #include "pmih0108.dtsi"
 #include "pmk8550.dtsi"
 #include "sm8750-pmics.dtsi"
@@ -140,22 +141,36 @@
 		};
 	};
 
-	/*
-	 * Stock lid_hall (xiaomi-hall): TLMM GPIO80, active low, SW_LID. Stock
-	 * takes its interrupts from the ADSP over SMP2P ("mi_hall_lid") rather
-	 * than from TLMM, and configures no pin state for it; keep this
-	 * disabled until the pin's ownership and level have been read under
-	 * stock Android and a cover close/open has been seen here.
-	 */
 	gpio-keys {
 		compatible = "gpio-keys";
-		status = "disabled";
 
+		pinctrl-0 = <&volume_up_n>;
+		pinctrl-names = "default";
+
+		/* Stock gpio_keys vol_up: PM8550 GPIO6, active low, 32 ms. */
+		key-volume-up {
+			label = "Volume Up";
+			gpios = <&pm8550_gpios 6 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEUP>;
+			debounce-interval = <32>;
+			linux,can-disable;
+			wakeup-source;
+		};
+
+		/*
+		 * Stock lid_hall (xiaomi-hall): TLMM GPIO80, active low, SW_LID.
+		 * Stock takes its interrupts from the ADSP over SMP2P
+		 * ("mi_hall_lid") rather than from TLMM, and configures no pin
+		 * state for it; keep this disabled until the pin's ownership and
+		 * level have been read under stock Android and a cover
+		 * close/open has been seen here.
+		 */
 		switch-lid {
 			label = "Lid";
 			gpios = <&tlmm 80 GPIO_ACTIVE_LOW>;
 			linux,input-type = <EV_SW>;
 			linux,code = <SW_LID>;
+			status = "disabled";
 		};
 	};
 
@@ -778,6 +793,17 @@
 	};
 };
 
+&pm8550_gpios {
+	/* Stock key_vol_up_default. */
+	volume_up_n: volume-up-n-state {
+		pins = "gpio6";
+		function = "normal";
+		power-source = <1>;
+		bias-pull-up;
+		input-enable;
+	};
+};
+
 &pm8550ve_f_gpios {
 	/* Stock bt_uwb_en: VIN1, no bias, output. */
 	bt_en_default: bt-en-default-state {
@@ -801,6 +827,13 @@
 };
 
 &pon_pwrkey {
+	status = "okay";
+};
+
+/* Stock pon_hlos resin: linux,code 114. */
+&pon_resin {
+	linux,code = <KEY_VOLUMEDOWN>;
+
 	status = "okay";
 };
 
