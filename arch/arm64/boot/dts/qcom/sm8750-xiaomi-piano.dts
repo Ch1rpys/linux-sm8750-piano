@@ -668,6 +668,12 @@
  * lock/unlock support for sharing it with another execution environment.
  */
 &i2c5 {
+	/* This unit's stock SE5 / sc8541_master@6a. Policy is opt-in. */
+	charger@6a {
+		compatible = "southchip,sc8541";
+		reg = <0x6a>;
+	};
+
 	fuel-gauge@55 {
 		compatible = "ti,bq27z561";
 		reg = <0x55>;
