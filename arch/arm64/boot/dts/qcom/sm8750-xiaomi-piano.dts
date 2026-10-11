@@ -42,7 +42,7 @@
 	chosen {
 		stdout-path = "serial0:115200n8";
 
-		/* Firmware scanout; replace with native DPU/panel ownership. */
+		/* Early firmware console; native DRM removes this at KMS handoff. */
 		framebuffer {
 			compatible = "simple-framebuffer";
 			memory-region = <&splash_mem>;
@@ -823,9 +823,9 @@
  * Native display path for the bonded dual-DSI DSC video-mode LCD, from the
  * stock dsi-display-primary, mdss_dsi_ctrl0/1 and mdss_dsi_phy0/1 nodes:
  * DSI0 is the clock master and both links run from its PHY PLL, four lanes
- * per link, commands broadcast to both links. Kept disabled: the firmware
- * scanout (chosen/framebuffer) owns the display until the native takeover
- * has passed its own supervised runs.
+ * per link, commands broadcast to both links. The desktop enables this
+ * path; chosen/framebuffer retains the early firmware console until KMS
+ * removes its aperture. Native takeover has not yet been tested here.
  */
 &mdss_dsi0 {
 	/* Stock vdda-1p2 on both controllers: L3G, 16.6 mA. */
@@ -840,15 +840,16 @@
 	 * selects qcom,mdss_dsi_p81_42_02_0a_dualdsi_dsc_vid.
 	 */
 	panel@0 {
-		compatible = "xiaomi,piano-p81-42-02-0a", "novatek,nt36532";
+		compatible = "xiaomi,piano-boe-nt36532", "novatek,nt36532";
 		reg = <0>;
 
 		/* Stock qcom,platform-reset-gpio: TLMM GPIO98. */
 		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
 
 		vddio-supply = <&vreg_l12b_1p9>;
-		vsp-supply = <&panel_vsp>;
-		vsn-supply = <&panel_vsn>;
+		avdd-supply = <&panel_vsp>;
+		avee-supply = <&panel_vsn>;
+		backlight = <&backlight>;
 
 		/* Stock sde_dsi_active/suspend and sde_te_active/suspend. */
 		pinctrl-0 = <&panel_reset_active>, <&panel_te_default>;
