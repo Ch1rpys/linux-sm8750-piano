@@ -844,7 +844,7 @@
 	 * The bootloader picks the P81 profile at runtime; on this unit it
 	 * selects qcom,mdss_dsi_p81_42_02_0a_dualdsi_dsc_vid.
 	 */
-	panel@0 {
+	panel: panel@0 {
 		compatible = "xiaomi,piano-boe-nt36532", "novatek,nt36532";
 		reg = <0>;
 
@@ -1051,6 +1051,7 @@
 
 	touchscreen@0 {
 		compatible = "novatek,nt36532e";
+		panel = <&panel>;
 		reg = <0>;
 		spi-max-frequency = <19200000>;
 		interrupt-parent = <&tlmm>;
