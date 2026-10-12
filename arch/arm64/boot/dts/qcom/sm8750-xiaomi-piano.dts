@@ -667,6 +667,11 @@
  * marked multi-EE (qcom,shared) in the stock tree; this kernel has no GPI
  * lock/unlock support for sharing it with another execution environment.
  */
+&iris {
+	firmware-name = "qcom/sm8750/vpu35_4v.mbn";
+	status = "okay";
+};
+
 &i2c5 {
 	/* This unit's stock SE5 / sc8541_master@6a. Policy is opt-in. */
 	charger@6a {
@@ -980,6 +985,18 @@
 		power-source = <1>;
 		bias-disable;
 		output-low;
+	};
+};
+
+&pmk8550 {
+	/* Diagnostic SDAM2 window only; no RTC offset or writable cells. */
+	nvram@7200 {
+		compatible = "qcom,spmi-sdam";
+		reg = <0x7200>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0 0x7200 0x80>;
+		read-only;
 	};
 };
 
