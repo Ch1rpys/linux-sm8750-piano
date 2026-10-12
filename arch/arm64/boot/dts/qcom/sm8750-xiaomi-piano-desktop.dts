@@ -290,11 +290,6 @@
 };
 
 &mdss_dsi1 {
-	/* Both links use PHY0's PLL in the stock clock tree. */
-	assigned-clocks = <&dispcc DISP_CC_MDSS_BYTE1_CLK_SRC>,
-			  <&dispcc DISP_CC_MDSS_PCLK1_CLK_SRC>;
-	assigned-clock-parents = <&mdss_dsi0_phy DSI_BYTE_PLL_CLK>,
-				 <&mdss_dsi0_phy DSI_PIXEL_PLL_CLK>;
 	status = "okay";
 };
 
