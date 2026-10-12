@@ -678,29 +678,23 @@
 	/* Stock qcom,clk-freq-out on the keyboard bridge bus. */
 	clock-frequency = <1000000>;
 
-	/*
-	 * Nanosic WN8030 keyboard bridge. Stock requests both interrupts with
-	 * IRQF_TRIGGER_RISING | IRQF_ONESHOT. Kept disabled outside the
-	 * supervised kbd-diag variant: the driver holds the bridge awake while
-	 * bound and has no runtime/system PM yet.
-	 */
+	/* Stock wiring; the product desktop DTS enables this consumer. */
 	keyboard@4c {
-		compatible = "xiaomi,piano-keyboard";
+		compatible = "nanosic,wn8030-piano";
 		reg = <0x4c>;
 
 		interrupt-parent = <&tlmm>;
-		interrupts = <97 IRQ_TYPE_EDGE_RISING>,
-			     <95 IRQ_TYPE_EDGE_RISING>;
-		interrupt-names = "irq",
-				  "wakeup";
+		interrupts = <97 IRQ_TYPE_EDGE_RISING>;
+		status-gpios = <&tlmm 95 GPIO_ACTIVE_HIGH>;
 
 		reset-gpios = <&tlmm 188 GPIO_ACTIVE_LOW>;
-		wake-gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>;
+		sleep-gpios = <&tlmm 3 GPIO_ACTIVE_LOW>;
 
-		vdd-supply = <&vreg_l14b_3p3>;
-		dvdd-supply = <&vreg_l11b_1p8>;
+		dvdd-supply = <&vreg_l14b_3p3>;
+		vddio-supply = <&vreg_l11b_1p8>;
 
 		firmware-name = "nanosic/piano/MCU_Upgrade.bin";
+		nanosic,no-touchpad;
 
 		pinctrl-0 = <&keyboard_default>;
 		pinctrl-names = "default";
