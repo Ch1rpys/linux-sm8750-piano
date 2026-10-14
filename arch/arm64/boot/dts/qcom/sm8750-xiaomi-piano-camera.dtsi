@@ -66,8 +66,9 @@
 		gpio = <&tlmm 175 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		startup-delay-us = <100>;
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&cam_wide_avdd_pins>;
+		pinctrl-1 = <&cam_wide_avdd_sleep>;
 	};
 
 	cam_front_avdd: regulator-camera-front-avdd {
@@ -78,8 +79,9 @@
 		gpio = <&tlmm 176 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		startup-delay-us = <100>;
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&cam_front_avdd_pins>;
+		pinctrl-1 = <&cam_front_avdd_sleep>;
 	};
 };
 
@@ -193,8 +195,9 @@
 				assigned-clocks = <&cambistmclkcc CAM_BIST_MCLK_CC_MCLK1_CLK>;
 				assigned-clock-rates = <24000000>;
 				reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
-				pinctrl-names = "default";
+				pinctrl-names = "default", "sleep";
 				pinctrl-0 = <&cam_wide>;
+				pinctrl-1 = <&cam_wide_sleep>;
 				afvdd-supply = <&vreg_l7b_2p8>;
 				vdda-supply = <&cam_wide_avdd>;
 				vddd-supply = <&vreg_l1i_1p1>;
@@ -443,8 +446,7 @@
 	status = "okay";
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&cam_i2c9>;
-	/* The stock "sleep" state is in the driverless stock TLMM. */
-	pinctrl-1 = <&cam_i2c9>;
+	pinctrl-1 = <&cam_i2c9_sleep>;
 	clock-frequency = <1000000>;
 
 	camera_front: camera@10 {
@@ -452,9 +454,12 @@
 		reg = <0x10>;
 		power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
 		clocks = <&cambistmclkcc CAM_BIST_MCLK_CC_MCLK4_CLK>;
+		assigned-clocks = <&cambistmclkcc CAM_BIST_MCLK_CC_MCLK4_CLK>;
+		assigned-clock-rates = <19200000>;
 		reset-gpios = <&tlmm 7 GPIO_ACTIVE_LOW>;
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&cam_front>;
+		pinctrl-1 = <&cam_front_sleep>;
 		vddio-supply = <&vreg_l10b_1p8>;
 		dvdd-supply = <&vreg_l2g_1p2>;
 		avdd-supply = <&cam_front_avdd>;
@@ -471,3 +476,54 @@
 	};
 };
 
+&tlmm {
+	cam_wide_sleep: cam-wide-sleep-state {
+		mclk-pins {
+			pins = "gpio90";
+			function = "cam_mclk";
+			drive-strength = <4>;
+			bias-pull-down;
+		};
+		reset-pins {
+			pins = "gpio6";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			output-low;
+		};
+	};
+	cam_front_sleep: cam-front-sleep-state {
+		mclk-pins {
+			pins = "gpio93";
+			function = "cam_aon_mclk4";
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+		reset-pins {
+			pins = "gpio7";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			output-low;
+		};
+	};
+	cam_i2c9_sleep: cam-i2c9-sleep-state {
+		pins = "gpio4", "gpio5";
+		function = "gpio";
+		drive-strength = <4>;
+	};
+	cam_wide_avdd_sleep: cam-wide-avdd-sleep-state {
+		pins = "gpio175";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		output-low;
+	};
+	cam_front_avdd_sleep: cam-front-avdd-sleep-state {
+		pins = "gpio176";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		output-low;
+	};
+};
