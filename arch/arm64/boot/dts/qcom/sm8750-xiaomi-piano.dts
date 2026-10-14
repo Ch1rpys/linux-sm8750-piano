@@ -158,19 +158,18 @@
 		};
 
 		/*
-		 * Stock lid_hall (xiaomi-hall): TLMM GPIO80, active low, SW_LID.
-		 * Stock takes its interrupts from the ADSP over SMP2P
-		 * ("mi_hall_lid") rather than from TLMM, and configures no pin
-		 * state for it; keep this disabled until the pin's ownership and
-		 * level have been read under stock Android and a cover
-		 * close/open has been seen here.
+		 * Same-model SunUEFI a485cc01c639 vendor/piano-linux/board.dtb,
+		 * /soc/piano-hall-ml: GPIO80 active low, SW_LID and wakeup-source,
+		 * no pinctrl; its desktop uses real cover close/open events.
+		 * GPIO80 maps to PDC 122. Wake only when the cover opens.
 		 */
 		switch-lid {
 			label = "Lid";
 			gpios = <&tlmm 80 GPIO_ACTIVE_LOW>;
 			linux,input-type = <EV_SW>;
 			linux,code = <SW_LID>;
-			status = "disabled";
+			wakeup-source;
+			wakeup-event-action = <EV_ACT_DEASSERTED>;
 		};
 	};
 
