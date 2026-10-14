@@ -697,6 +697,9 @@
 		interrupt-parent = <&tlmm>;
 		interrupts = <97 IRQ_TYPE_EDGE_RISING>;
 		status-gpios = <&tlmm 95 GPIO_ACTIVE_HIGH>;
+		data-gpios = <&tlmm 97 GPIO_ACTIVE_HIGH>;
+		wakeup-source;
+		panel = <&panel>;
 
 		reset-gpios = <&tlmm 188 GPIO_ACTIVE_LOW>;
 		sleep-gpios = <&tlmm 3 GPIO_ACTIVE_LOW>;
