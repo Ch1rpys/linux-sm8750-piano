@@ -181,9 +181,7 @@
 			#size-cells = <0>;
 
 			cam_wide_vcm: vcm@c {
-				/* Stock uses GT9764BA; its register protocol is unverified. */
-				status = "disabled";
-				compatible = "giantec,gt9769";
+				compatible = "giantec,gt9764";
 				reg = <0x0c>;
 				vin-supply = <&vreg_l6b_1p8>;
 				vdd-supply = <&vreg_l7b_2p8>;
@@ -206,6 +204,7 @@
 				vddio-supply = <&vreg_l6b_1p8>;
 				orientation = <1>;
 				rotation = <180>;
+				lens-focus = <&cam_wide_vcm>;
 
 				port {
 					cam_wide_ep: endpoint {
