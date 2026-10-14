@@ -42,7 +42,7 @@ properties:
       - const: vfe_lite1
 
   clocks:
-    maxItems: 35
+    maxItems: 44
 
   clock-names:
     items:
@@ -54,6 +54,9 @@ properties:
       - const: cpas_vfe1
       - const: cpas_vfe2
       - const: cpas_vfe_lite
+      - const: cpas_vfe0_bayer
+      - const: cpas_vfe1_bayer
+      - const: cpas_vfe2_bayer
       - const: csid
       - const: csid_csiphy_rx
       - const: csiphy0
@@ -76,6 +79,12 @@ properties:
       - const: vfe1_fast_ahb
       - const: vfe2
       - const: vfe2_fast_ahb
+      - const: vfe0_bayer
+      - const: vfe0_bayer_fast_ahb
+      - const: vfe1_bayer
+      - const: vfe1_bayer_fast_ahb
+      - const: vfe2_bayer
+      - const: vfe2_bayer_fast_ahb
       - const: vfe_lite
       - const: vfe_lite_ahb
       - const: vfe_lite_cphy_rx
@@ -293,6 +302,9 @@ examples:
                      <&camcc CAM_CC_CAMNOC_RT_TFE_1_MAIN_CLK>,
                      <&camcc CAM_CC_CAMNOC_RT_TFE_2_MAIN_CLK>,
                      <&camcc CAM_CC_CAMNOC_RT_IFE_LITE_CLK>,
+                     <&camcc CAM_CC_CAMNOC_RT_TFE_0_BAYER_CLK>,
+                     <&camcc CAM_CC_CAMNOC_RT_TFE_1_BAYER_CLK>,
+                     <&camcc CAM_CC_CAMNOC_RT_TFE_2_BAYER_CLK>,
                      <&camcc CAM_CC_CSID_CLK>,
                      <&camcc CAM_CC_CSID_CSIPHY_RX_CLK>,
                      <&camcc CAM_CC_CSIPHY0_CLK>,
@@ -315,6 +327,12 @@ examples:
                      <&camcc CAM_CC_TFE_1_MAIN_FAST_AHB_CLK>,
                      <&camcc CAM_CC_TFE_2_MAIN_CLK>,
                      <&camcc CAM_CC_TFE_2_MAIN_FAST_AHB_CLK>,
+                     <&camcc CAM_CC_TFE_0_BAYER_CLK>,
+                     <&camcc CAM_CC_TFE_0_BAYER_FAST_AHB_CLK>,
+                     <&camcc CAM_CC_TFE_1_BAYER_CLK>,
+                     <&camcc CAM_CC_TFE_1_BAYER_FAST_AHB_CLK>,
+                     <&camcc CAM_CC_TFE_2_BAYER_CLK>,
+                     <&camcc CAM_CC_TFE_2_BAYER_FAST_AHB_CLK>,
                      <&camcc CAM_CC_IFE_LITE_CLK>,
                      <&camcc CAM_CC_IFE_LITE_AHB_CLK>,
                      <&camcc CAM_CC_IFE_LITE_CPHY_RX_CLK>,
@@ -328,6 +346,9 @@ examples:
                           "cpas_vfe1",
                           "cpas_vfe2",
                           "cpas_vfe_lite",
+                          "cpas_vfe0_bayer",
+                          "cpas_vfe1_bayer",
+                          "cpas_vfe2_bayer",
                           "csid",
                           "csid_csiphy_rx",
                           "csiphy0",
@@ -350,6 +371,12 @@ examples:
                           "vfe1_fast_ahb",
                           "vfe2",
                           "vfe2_fast_ahb",
+                          "vfe0_bayer",
+                          "vfe0_bayer_fast_ahb",
+                          "vfe1_bayer",
+                          "vfe1_bayer_fast_ahb",
+                          "vfe2_bayer",
+                          "vfe2_bayer_fast_ahb",
                           "vfe_lite",
                           "vfe_lite_ahb",
                           "vfe_lite_cphy_rx",
