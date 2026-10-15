@@ -1278,7 +1278,11 @@ static int fastrpc_internal_invoke(struct fastrpc_user *fl,  u32 kernel,
 		if (!wait_for_completion_timeout(&ctx->work, 10 * HZ))
 			err = -ETIMEDOUT;
 	} else {
-		err = wait_for_completion_interruptible(&ctx->work);
+		/* Freeze this waiter in place during system sleep, retaining the
+		 * in-flight DSP context instead of restarting and resending it.
+		 * Real signals remain interruptible. */
+		err = wait_for_completion_state(&ctx->work,
+						TASK_INTERRUPTIBLE | TASK_FREEZABLE);
 	}
 
 	if (err)
