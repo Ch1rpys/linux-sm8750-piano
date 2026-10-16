@@ -146,6 +146,7 @@
 	pmic-glink {
 		compatible = "xiaomi,piano-pmic-glink", "qcom,sm8750-pmic-glink",
 			     "qcom,sm8550-pmic-glink", "qcom,pmic-glink";
+		xiaomi,charge-pump = <&sc8541>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -703,7 +704,7 @@
 
 &i2c5 {
 	/* This unit's stock SE5 / sc8541_master@6a. Policy is opt-in. */
-	charger@6a {
+	sc8541: charger@6a {
 		compatible = "southchip,sc8541";
 		reg = <0x6a>;
 	};
