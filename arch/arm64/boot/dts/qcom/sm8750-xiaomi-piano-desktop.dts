@@ -71,16 +71,6 @@
 		};
 	};
 
-	/*
-	 * The charger firmware speaks Xiaomi MCA on the battery manager owner.
-	 * No connector yet: DWC3 stays a peripheral without a role switch for
-	 * the USB debug link, so UCSI registers its port without role switch,
-	 * mux or orientation consumers and AltMode has no port to drive.
-	 */
-	pmic-glink {
-		compatible = "xiaomi,piano-pmic-glink", "qcom,sm8750-pmic-glink",
-			     "qcom,sm8550-pmic-glink", "qcom,pmic-glink";
-	};
 };
 
 /*

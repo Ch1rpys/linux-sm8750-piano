@@ -142,6 +142,35 @@
 		};
 	};
 
+	/* Xiaomi MCA battery protocol; USB roles use the standard UCSI client. */
+	pmic-glink {
+		compatible = "xiaomi,piano-pmic-glink", "qcom,sm8750-pmic-glink",
+			     "qcom,sm8550-pmic-glink", "qcom,pmic-glink";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		connector@0 {
+			compatible = "usb-c-connector";
+			reg = <0>;
+			power-role = "dual";
+			data-role = "dual";
+
+			/* USB2 only until SS and SBU routing are validated. */
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+
+					pmic_glink_hs_in: endpoint {
+						remote-endpoint = <&usb_dwc3_hs>;
+					};
+				};
+			};
+		};
+	};
+
 	gpio-keys {
 		compatible = "gpio-keys";
 
@@ -1254,15 +1283,19 @@
 };
 
 &usb {
-	/* Bounded USB2 diagnostics until the Type-C/ADSP path is supported. */
-	dr_mode = "peripheral";
+	/* Keep USB2 PHY ownership unchanged while enabling negotiated roles. */
+	dr_mode = "otg";
 	maximum-speed = "high-speed";
 	phys = <&usb_hsphy>;
 	phy-names = "usb2-phy";
 	qcom,select-utmi-as-pipe-clk;
-	/delete-property/ usb-role-switch;
+	usb-role-switch;
 
 	status = "okay";
+};
+
+&usb_dwc3_hs {
+	remote-endpoint = <&pmic_glink_hs_in>;
 };
 
 /* Stock combo PHY uses L2D for vdd and L3G for its 1.2 V core supply.
