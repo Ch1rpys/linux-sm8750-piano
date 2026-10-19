@@ -178,6 +178,14 @@
 						remote-endpoint = <&usb_dp_qmpphy_out>;
 					};
 				};
+
+				port@2 {
+					reg = <2>;
+
+					pmic_glink_sbu: endpoint {
+						remote-endpoint = <&dio4485_sbu_mux>;
+					};
+				};
 			};
 		};
 	};
@@ -862,6 +870,10 @@
 	};
 };
 
+&mdss_dp0 {
+	status = "okay";
+};
+
 &mdss_dp0_out {
 	/* Stock limits the DP link clock to 540000 kHz (HBR2). */
 	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000>;
@@ -1333,6 +1345,25 @@
 	phys = <&pmih0108_eusb2_repeater>;
 
 	status = "okay";
+};
+
+&i2c3 {
+	status = "okay";
+
+	dio4485: typec-mux@42 {
+		compatible = "dioo,dio4485";
+		reg = <0x42>;
+		/* Stock does not describe the VCC rail; the supply is optional. */
+		mode-switch;
+		orientation-switch;
+		status = "okay";
+
+		port {
+			dio4485_sbu_mux: endpoint {
+				remote-endpoint = <&pmic_glink_sbu>;
+			};
+		};
+	};
 };
 
 &xbl_ramdump_mem {

@@ -4,7 +4,7 @@
  * description plus the functions enabled on top of it. Each block was first
  * enabled on its own in a supervised RAM diagnostic (kept on the piano/diag
  * branch); enabling them together does not by itself establish their
- * concurrent operation. USB host/DP and charger control are not enabled.
+ * concurrent operation. USB3 and DP routing still need board validation.
  */
 
 #include "sm8750-xiaomi-piano.dts"
