@@ -581,15 +581,21 @@
  * stays disabled here; only the supervised gpu-diag variant enables it.
  */
 /*
- * CPU passive trips at the stock first-stage temperatures. Stock throttles
- * the cluster (cpufreq) at 95C on these zones and pauses the core at 118C on
- * the others; here every per-core zone throttles its cluster, the only CPU
- * cooling device available. Stock has no kernel mitigation on the CPUSS
- * zones, so their passive trip is dropped and only hot/critical remain.
+ * CPU passive trips. Under stock Android this unit runs the prime cores at
+ * 4.32 GHz and the other cores at 3.53 GHz with these per-core zones at up
+ * to 104-105C (never above 105.5C in 2410 samples), so the 95C trips of the
+ * stock DT are not its effective limit; the stock DT also carries a 105C,
+ * 5C hysteresis trip on each of these zones. Hold them at that 105C. The
+ * hotspot rises by about 200C/s at load onset, which a 250 ms passive poll
+ * overshoots by about 10C, so poll every 10 ms while passive (stock polls
+ * these zones every 4 ms). The other per-core zones keep the stock 118C
+ * core-pause temperature. Every per-core zone throttles its cluster, the
+ * only CPU cooling device available. Stock has no kernel mitigation on the
+ * CPUSS zones, so their passive trip is dropped and only hot/critical remain.
  */
 &cpu_0_0_0_alert {
-	temperature = <95000>;
-	hysteresis = <8000>;
+	temperature = <105000>;
+	hysteresis = <5000>;
 };
 
 &cpu_0_0_1_alert {
@@ -608,13 +614,13 @@
 };
 
 &cpu_0_2_0_alert {
-	temperature = <95000>;
-	hysteresis = <8000>;
+	temperature = <105000>;
+	hysteresis = <5000>;
 };
 
 &cpu_0_2_1_alert {
-	temperature = <95000>;
-	hysteresis = <8000>;
+	temperature = <105000>;
+	hysteresis = <5000>;
 };
 
 &cpu_0_3_0_alert {
@@ -628,13 +634,13 @@
 };
 
 &cpu_0_4_0_alert {
-	temperature = <95000>;
-	hysteresis = <8000>;
+	temperature = <105000>;
+	hysteresis = <5000>;
 };
 
 &cpu_0_4_1_alert {
-	temperature = <95000>;
-	hysteresis = <8000>;
+	temperature = <105000>;
+	hysteresis = <5000>;
 };
 
 &cpu_0_5_0_alert {
@@ -648,23 +654,59 @@
 };
 
 &cpu_1_0_0_alert {
-	temperature = <95000>;
-	hysteresis = <8000>;
+	temperature = <105000>;
+	hysteresis = <5000>;
 };
 
 &cpu_1_0_1_alert {
-	temperature = <95000>;
-	hysteresis = <8000>;
+	temperature = <105000>;
+	hysteresis = <5000>;
 };
 
 &cpu_1_1_0_alert {
-	temperature = <95000>;
-	hysteresis = <8000>;
+	temperature = <105000>;
+	hysteresis = <5000>;
 };
 
 &cpu_1_1_1_alert {
-	temperature = <95000>;
-	hysteresis = <8000>;
+	temperature = <105000>;
+	hysteresis = <5000>;
+};
+
+&{/thermal-zones/cpu-0-0-0-thermal} {
+	polling-delay-passive = <10>;
+};
+
+&{/thermal-zones/cpu-0-2-0-thermal} {
+	polling-delay-passive = <10>;
+};
+
+&{/thermal-zones/cpu-0-2-1-thermal} {
+	polling-delay-passive = <10>;
+};
+
+&{/thermal-zones/cpu-0-4-0-thermal} {
+	polling-delay-passive = <10>;
+};
+
+&{/thermal-zones/cpu-0-4-1-thermal} {
+	polling-delay-passive = <10>;
+};
+
+&{/thermal-zones/cpu-1-0-0-thermal} {
+	polling-delay-passive = <10>;
+};
+
+&{/thermal-zones/cpu-1-0-1-thermal} {
+	polling-delay-passive = <10>;
+};
+
+&{/thermal-zones/cpu-1-1-0-thermal} {
+	polling-delay-passive = <10>;
+};
+
+&{/thermal-zones/cpu-1-1-1-thermal} {
+	polling-delay-passive = <10>;
 };
 
 &{/thermal-zones/cpuss-0-0-thermal} {
