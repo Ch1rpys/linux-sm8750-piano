@@ -896,15 +896,19 @@
 	qcom,sync-dual-dsi;
 
 	/*
-	 * The bootloader picks the P81 profile at runtime; on this unit it
-	 * selects qcom,mdss_dsi_p81_42_02_0a_dualdsi_dsc_vid.
+	 * Two panel modules share this board. The stock bootloader picks the
+	 * P81 profile from the module ID pin that the stock touch driver also
+	 * reads (novatek,lcd_id-gpio, TLMM GPIO100, no pinctrl state): low is
+	 * qcom,mdss_dsi_p81_42_02_0a_dualdsi_dsc_vid (CSOT), high is
+	 * qcom,mdss_dsi_p81_35_02_0b_dualdsi_dsc_vid (BOE).
 	 */
 	panel: panel@0 {
-		compatible = "xiaomi,piano-boe-nt36532", "novatek,nt36532";
+		compatible = "xiaomi,piano-nt36532", "novatek,nt36532";
 		reg = <0>;
 
 		/* Stock qcom,platform-reset-gpio: TLMM GPIO98. */
 		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
+		id-gpios = <&tlmm 100 GPIO_ACTIVE_HIGH>;
 
 		vddio-supply = <&vreg_l12b_1p9>;
 		avdd-supply = <&panel_vsp>;
@@ -1111,7 +1115,10 @@
 		spi-max-frequency = <19200000>;
 		interrupt-parent = <&tlmm>;
 		interrupts = <162 IRQ_TYPE_EDGE_RISING>;
-		firmware-name = "novatek/piano/novatek_nt36532_piano_fw_csot.bin";
+		/* Stock firmware per panel module, indexed by the ID pin level. */
+		novatek,lcd-id-gpios = <&tlmm 100 GPIO_ACTIVE_HIGH>;
+		firmware-name = "novatek/piano/novatek_nt36532_piano_fw_csot.bin",
+				"novatek/piano/novatek_nt36532_piano_fw_boe.bin";
 		status = "disabled";
 	};
 };
