@@ -30,8 +30,7 @@
 	/*
 	 * ABL replaces model/compatible with the stock DTBO's ("qcom,sun-mtp",
 	 * ...), which breaks root match tables. CONFIG_QCOM_ABL_ROOT_IDENTITY
-	 * restores them from these copies; the DTBO does not carry them
-	 * (TD-001).
+	 * restores them from these copies; the DTBO does not carry them.
 	 */
 	xiaomi,mainline-model = PIANO_MODEL;
 	xiaomi,mainline-compatible = PIANO_COMPATIBLE;
