@@ -5,6 +5,7 @@
  */
 
 #include <linux/elf.h>
+#include <linux/string.h>
 
 #include "qmi.h"
 #include "core.h"
@@ -3497,6 +3498,7 @@ int ath12k_qmi_wlanfw_qdss_dnld_send(struct ath12k_base *ab)
 	const struct firmware *fw = NULL;
 	const u8 *tmp;
 	u32 remaining;
+	u32 seg_id;
 	char path[100];
 
 	fw = ath12k_core_firmware_request(ab, ATH12K_QDSS_FILE);
@@ -3508,8 +3510,19 @@ int ath12k_qmi_wlanfw_qdss_dnld_send(struct ath12k_base *ab)
 		return ret;
 	}
 	
+	if (!fw->size) {
+		ret = -EINVAL;
+		goto req_out;
+	}
+
+	if (fw->size > (u64)U32_MAX) {
+		ret = -EFBIG;
+		goto req_out;
+	}
+
 	tmp = fw->data;
 	remaining = fw->size;
+	seg_id = 0;
 
 	req = kzalloc(sizeof(*req), GFP_KERNEL);
 	if (!req) {
@@ -3518,9 +3531,19 @@ int ath12k_qmi_wlanfw_qdss_dnld_send(struct ath12k_base *ab)
 	}
 
 	while (remaining) {
+		/* The request and the response are reused for every segment,
+		 * so clear them instead of carrying the previous round over.
+		 * The segment number is kept on the side: the clear would
+		 * take it back to zero and every segment of a long
+		 * configuration would carry the same number.
+		 */
+		memset(req, 0, sizeof(*req));
+		memset(&resp, 0, sizeof(resp));
+
 		req->total_size_valid = 1;
 		req->total_size = remaining;
 		req->seg_id_valid = 1;
+		req->seg_id = seg_id;
 		req->data_valid = 1;
 		req->end_valid = 1;
 
@@ -3564,7 +3587,7 @@ int ath12k_qmi_wlanfw_qdss_dnld_send(struct ath12k_base *ab)
 
 		remaining -= req->data_len;
 		tmp += req->data_len;
-		req->seg_id++;
+		seg_id++;
 	}
 
 out:
