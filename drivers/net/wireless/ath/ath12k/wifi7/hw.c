@@ -721,7 +721,7 @@ static const struct ath12k_hw_params ath12k_wifi7_hw_params[] = {
 			.download_aux_ucode = true,
 		},
 
-		.max_radios = 2,
+		.max_radios = 1,
 		.single_pdev_only = true,
 		.qmi_service_ins_id = ATH12K_QMI_WLFW_SERVICE_INS_ID_V01_WCN7850,
 		.internal_sleep_clock = true,
@@ -800,6 +800,12 @@ static const struct ath12k_hw_params ath12k_wifi7_hw_params[] = {
 		.current_cc_support = true,
 
 		.dp_primary_link_only = false,
+
+		.client = {
+			.max_client_single = 512,
+			.max_client_dbs = 128,
+			.max_client_dbs_sbs = 128,
+		},
 	},
 	{
 		.name = "qcc2072 hw1.0",
