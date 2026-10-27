@@ -552,7 +552,7 @@ static void nvt_test_host_commands(struct kunit *test)
 
 	KUNIT_ASSERT_NOT_NULL(test, mock);
 	map = nvt_mock_map(test, mock);
-	KUNIT_ASSERT_EQ(test, nvt_thp_apply_host_commands(map, &last), 0);
+	KUNIT_ASSERT_EQ(test, nvt_thp_apply_host_commands(map, false, &last), 0);
 	KUNIT_EXPECT_EQ(test, last.sub_command, 0x01);
 	KUNIT_EXPECT_EQ(test, last.status, 0);
 	KUNIT_ASSERT_EQ(test, mock->host_commands, 3U);
@@ -565,10 +565,32 @@ static void nvt_test_host_commands(struct kunit *test)
 	for (index = 1; index <= calls; ++index) {
 		mock->calls = 0;
 		mock->fail_call = index;
-		KUNIT_EXPECT_EQ_MSG(test, nvt_thp_apply_host_commands(map, &last), -EREMOTEIO,
-				    "bus call %u", index);
+		KUNIT_EXPECT_EQ_MSG(test, nvt_thp_apply_host_commands(map, false, &last),
+				    -EREMOTEIO, "bus call %u", index);
 		KUNIT_EXPECT_EQ(test, mock->calls, index);
 	}
+}
+
+/*
+ * The stylus scan is disabled while no pen consumer is connected. Keep the
+ * scan enabled when the device tree asks for a stylus.
+ */
+static void nvt_test_stylus_enabled(struct kunit *test)
+{
+	static const u8 expected[3][5] = {
+		{ 0xbf, 0x04, 0x00, 0x01, 0x00 },	/* stylus scan enabled */
+		{ 0xbf, 0x19, 0x00, 0x01, 0x00 },	/* idle-baseline update */
+		{ 0xbf, 0x01, 0x00, 0x02, 0x00 },	/* op mode 2 */
+	};
+	struct nvt_mock *mock = kunit_kzalloc(test, sizeof(*mock), GFP_KERNEL);
+	struct nvt_thp_command_status last;
+	struct regmap *map;
+
+	KUNIT_ASSERT_NOT_NULL(test, mock);
+	map = nvt_mock_map(test, mock);
+	KUNIT_ASSERT_EQ(test, nvt_thp_apply_host_commands(map, true, &last), 0);
+	KUNIT_ASSERT_EQ(test, mock->host_commands, 3U);
+	KUNIT_EXPECT_MEMEQ(test, mock->host_command, expected, sizeof(expected));
 }
 
 static void nvt_test_host_command_timeout(struct kunit *test)
@@ -581,7 +603,7 @@ static void nvt_test_host_command_timeout(struct kunit *test)
 	KUNIT_ASSERT_NOT_NULL(test, mock);
 	map = nvt_mock_map(test, mock);
 	mock->stuck_command = true;
-	KUNIT_EXPECT_EQ(test, nvt_thp_apply_host_commands(map, &last), -ETIMEDOUT);
+	KUNIT_EXPECT_EQ(test, nvt_thp_apply_host_commands(map, false, &last), -ETIMEDOUT);
 	/* The failing command and the byte it left behind are reported. */
 	KUNIT_EXPECT_EQ(test, last.sub_command, 0x04);
 	KUNIT_EXPECT_EQ(test, last.status, 0xbf);
@@ -652,6 +674,7 @@ static struct kunit_case nvt_cases[] = {
 	KUNIT_CASE(nvt_test_normal_run_io_error),
 	KUNIT_CASE(nvt_test_get_extend_command),
 	KUNIT_CASE(nvt_test_host_commands),
+	KUNIT_CASE(nvt_test_stylus_enabled),
 	KUNIT_CASE(nvt_test_host_command_timeout),
 	{}
 };

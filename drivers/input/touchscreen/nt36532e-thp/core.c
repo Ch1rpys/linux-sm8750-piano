@@ -92,6 +92,7 @@ struct nvt_thp {
 	unsigned int read_errors;
 	int error;
 	bool dead, opened, running, epoch, suspended, panel_off;
+	bool stylus_enabled; /* Keep the stylus scan enabled for a pen consumer. */
 };
 
 static_assert(sizeof(struct nvt_stream_header) == 32);
@@ -468,7 +469,7 @@ static int nvt_start_stream(struct nvt_thp *nvt)
 		goto stop;
 	}
 	start = ktime_get();
-	ret = nvt_thp_apply_host_commands(nvt->map, &last);
+	ret = nvt_thp_apply_host_commands(nvt->map, nvt->stylus_enabled, &last);
 	commands_ms = ktime_ms_delta(ktime_get(), start);
 	/* Diagnostic read: preserve the last sample and command result on error. */
 	state_ret = nvt_thp_read_reset_state(nvt->map, &nvt->reset_state);
@@ -822,6 +823,12 @@ static int nvt_probe(struct spi_device *spi)
 	INIT_WORK(&nvt->start_work, nvt_start_work);
 	INIT_WORK(&nvt->charger_work, nvt_charger_work);
 	nvt->charger_state = nvt->charger_sent = -1;
+	/* The stock stack keeps the stylus scan disabled while no pen
+	 * consumer is connected, so the property is off unless the device
+	 * tree asks for the stylus.
+	 */
+	nvt->stylus_enabled = device_property_read_bool(&spi->dev,
+							"novatek,stylus-enabled");
 	mutex_init(&nvt->read_lock);
 	init_waitqueue_head(&nvt->wait);
 	ret = nvt_probe_panel_module(nvt);

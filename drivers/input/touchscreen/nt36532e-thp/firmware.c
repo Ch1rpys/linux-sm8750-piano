@@ -347,16 +347,18 @@ int nvt_thp_get_extend_command(struct regmap *map, u8 sub_command, u16 *value,
 /*
  * The piano stock stack first disables stylus scanning when no pen consumer
  * is connected (update_pen_status()/nvt_xm_htc_set_stylus_enable(), sub-command
- * 0x04). This transport currently exposes fingers only; do not leave the
- * freshly loaded firmware's pen state implicit. A pen input implementation
- * must manage that state explicitly when it is added.
+ * 0x04). Leave the pen state explicit: keep the scan disabled unless the
+ * device tree asks for the stylus, and let a pen input implementation manage
+ * the state explicitly when it is added.
  *
  * Use the original three-write sequence after the caller has waited for
  * NORMAL_RUN, without pre-command mode readback.
  */
-int nvt_thp_apply_host_commands(struct regmap *map, struct nvt_thp_command_status *last)
+int nvt_thp_apply_host_commands(struct regmap *map, bool stylus_enabled,
+				struct nvt_thp_command_status *last)
 {
-	int ret = nvt_extend_command(map, 0x04, 0x00, last);
+	int ret = nvt_extend_command(map, 0x04, stylus_enabled ? 0x01 : 0x00,
+				     last);
 
 	if (ret)
 		return ret;
