@@ -2048,12 +2048,23 @@ retry:
 
 	/* Setup user speed if needed */
 	speed = qca_get_speed(hu, QCA_OPER_SPEED);
-	if (speed) {
+	if (speed &&
+	    !(soc_type == QCA_WCN7860 &&
+	      qca_peach_uses_current_baudrate(&ver))) {
 		ret = qca_set_speed(hu, QCA_OPER_SPEED);
 		if (ret)
 			goto out;
 
 		qca_baudrate = qca_get_baudrate_value(speed);
+	} else if (speed) {
+		/* Stock still writes the configured operating-rate code into the
+		 * new-format NVM HCI tag. This value does not change the live UART
+		 * used to download rampatch and NVM.
+		 */
+		qca_baudrate = qca_get_baudrate_value(speed);
+		bt_dev_info(hdev,
+			    "QCA Peach downloads at current UART rate; skipping 0xfc48 (NVM baud 0x%02x)",
+			    qca_baudrate);
 	}
 
 	switch (soc_type) {

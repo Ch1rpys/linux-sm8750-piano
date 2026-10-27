@@ -13,6 +13,24 @@
 
 #include "btqca.h"
 
+/*
+ * The Qualcomm Peach HAL deliberately skips the SetBaudRate request for
+ * these product and ROM tuples and starts the TLV download at the UART rate
+ * which was used successfully for the version request. Sending the request
+ * here instead leaves the Elden Peach v2 controller silent.
+ */
+bool qca_peach_uses_current_baudrate(const struct qca_btsoc_version *ver)
+{
+	u32 product_id = le32_to_cpu(ver->product_id);
+	u32 soc_id = le32_to_cpu(ver->soc_id);
+	u16 rom_ver = le16_to_cpu(ver->rom_ver);
+
+	return ((soc_id == 0x40210100 && rom_ver == 0x0100) ||
+		(soc_id == 0x40210200 && rom_ver == 0x0200)) &&
+	       (product_id == 0x1e || product_id == 0x21);
+}
+EXPORT_SYMBOL_GPL(qca_peach_uses_current_baudrate);
+
 int qca_read_soc_version(struct hci_dev *hdev, struct qca_btsoc_version *ver,
 			 enum qca_btsoc_type soc_type)
 {
