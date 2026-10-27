@@ -136,7 +136,7 @@ static int nvt_mock_read(void *context, const void *reg, size_t reg_size,
 		if (size == 5)
 			put_unaligned_le16(mock->readback_value, value + 3);
 		mock->host_polls++;
-		if (mock->stuck_command || mock->busy_reads) {
+		if (mock->stuck_command || mock->pen_stuck || mock->busy_reads) {
 			if (mock->busy_reads)
 				mock->busy_reads--;
 			value[0] = mock->memory[address];
