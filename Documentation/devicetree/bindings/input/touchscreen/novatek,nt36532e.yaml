@@ -57,6 +57,13 @@ properties:
       stack disables the scan while no pen consumer is connected, so the
       driver only keeps it enabled when the device tree asks for a stylus.
 
+  novatek,stylus-model:
+    enum: [1, 2, 3]
+    description:
+      Pen model to select with the host command family, 1 for the M80P,
+      2 for the N83P and 3 for the P81C. Without the property no model is
+      selected and the controller keeps the model of the firmware.
+
 required:
   - compatible
   - reg

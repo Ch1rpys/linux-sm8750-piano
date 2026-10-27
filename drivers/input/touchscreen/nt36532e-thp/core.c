@@ -93,6 +93,7 @@ struct nvt_thp {
 	int error;
 	bool dead, opened, running, epoch, suspended, panel_off;
 	bool stylus_enabled; /* Keep the stylus scan enabled for a pen consumer. */
+	u8 stylus_model; /* Pen model to select; 0 selects none. */
 };
 
 static_assert(sizeof(struct nvt_stream_header) == 32);
@@ -470,6 +471,8 @@ static int nvt_start_stream(struct nvt_thp *nvt)
 	}
 	start = ktime_get();
 	ret = nvt_thp_apply_host_commands(nvt->map, nvt->stylus_enabled, &last);
+	if (!ret && nvt->stylus_model)
+		ret = nvt_thp_set_pen_model(nvt->map, nvt->stylus_model);
 	commands_ms = ktime_ms_delta(ktime_get(), start);
 	/* Diagnostic read: preserve the last sample and command result on error. */
 	state_ret = nvt_thp_read_reset_state(nvt->map, &nvt->reset_state);
@@ -829,6 +832,18 @@ static int nvt_probe(struct spi_device *spi)
 	 */
 	nvt->stylus_enabled = device_property_read_bool(&spi->dev,
 							"novatek,stylus-enabled");
+	if (device_property_present(&spi->dev, "novatek,stylus-model")) {
+		u32 model = 0;
+
+		ret = device_property_read_u32(&spi->dev, "novatek,stylus-model",
+					       &model);
+		if (ret)
+			return ret;
+		if (model > U8_MAX)
+			return dev_err_probe(&spi->dev, -EINVAL,
+					     "novatek,stylus-model out of range\n");
+		nvt->stylus_model = model;
+	}
 	mutex_init(&nvt->read_lock);
 	init_waitqueue_head(&nvt->wait);
 	ret = nvt_probe_panel_module(nvt);

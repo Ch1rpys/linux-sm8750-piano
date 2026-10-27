@@ -345,6 +345,40 @@ int nvt_thp_get_extend_command(struct regmap *map, u8 sub_command, u16 *value,
 }
 
 /*
+ * The stock stack selects the pen with a two-byte command in the host
+ * command family and waits for the acknowledgement of the controller. The
+ * original wire sequence is 50 7b <model>, where the first byte is the
+ * address of the command register and the acknowledgement carries the
+ * status in its first byte.
+ *
+ * The vendor names the models 1 for the M80P, 2 for the N83P and 3 for the
+ * P81C.
+ */
+int nvt_thp_set_pen_model(struct regmap *map, u8 model)
+{
+	u8 command[2] = { 0x7b, model };
+	u8 ack = 0xff;
+	int retry;
+
+	for (retry = 0; retry < 10; retry++) {
+		int ret = regmap_bulk_write(map, NVT_HOST_COMMAND, command,
+					    sizeof(command));
+		if (ret)
+			return ret;
+
+		usleep_range(10000, 11000);
+		ack = 0xff;
+		ret = regmap_bulk_read(map, NVT_HOST_COMMAND, &ack, 1);
+		if (ret)
+			return ret;
+		if (!ack)
+			return 0;
+	}
+
+	return -ETIMEDOUT;
+}
+
+/*
  * The piano stock stack first disables stylus scanning when no pen consumer
  * is connected (update_pen_status()/nvt_xm_htc_set_stylus_enable(), sub-command
  * 0x04). Leave the pen state explicit: keep the scan disabled unless the

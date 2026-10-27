@@ -13,11 +13,14 @@ struct nvt_mock {
 	u8 *memory;
 	unsigned int calls, fail_call, uploaded, resets;
 	unsigned int host_commands, host_polls, busy_reads;
+	unsigned int pen_commands;
 	u8 host_command[4][5];
+	u8 pen_command[2];
 	u8 reset_states[4];
 	unsigned int reset_count, reset_polls;
 	u16 readback_value;
 	bool bad_id, bad_info, boot_ready, stuck_command;
+	bool pen_stuck; /* The controller never acknowledges the pen model. */
 };
 
 static void nvt_test_release(void *data)
@@ -74,6 +77,15 @@ static int nvt_mock_write(void *context, const void *data, size_t count)
 	if (address >= SZ_2M || size > SZ_2M - address)
 		return -EINVAL;
 	memcpy(mock->memory + address, value, size);
+	if (address == 0x11c450 && size == 2 && value[0] == 0x7b) {
+		/* The controller acknowledges the pen model with a cleared
+		 * status byte.
+		 */
+		memcpy(mock->pen_command, value, size);
+		mock->pen_commands++;
+		if (!mock->pen_stuck)
+			mock->memory[address] = 0;
+	}
 	if (address == 0x11c450 && (size == 3 || size == 5) && value[0] == 0xbf) {
 		if (mock->host_commands < ARRAY_SIZE(mock->host_command))
 			memcpy(mock->host_command[mock->host_commands], value, size);
@@ -593,6 +605,28 @@ static void nvt_test_stylus_enabled(struct kunit *test)
 	KUNIT_EXPECT_MEMEQ(test, mock->host_command, expected, sizeof(expected));
 }
 
+/*
+ * The pen model is selected with a two-byte command and the controller
+ * acknowledges it with a cleared status byte.
+ */
+static void nvt_test_pen_model(struct kunit *test)
+{
+	static const u8 expected[2] = { 0x7b, 0x03 };
+	struct nvt_mock *mock = kunit_kzalloc(test, sizeof(*mock), GFP_KERNEL);
+	struct regmap *map;
+
+	KUNIT_ASSERT_NOT_NULL(test, mock);
+	map = nvt_mock_map(test, mock);
+	KUNIT_ASSERT_EQ(test, nvt_thp_set_pen_model(map, 3), 0);
+	KUNIT_ASSERT_EQ(test, mock->pen_commands, 1U);
+	KUNIT_EXPECT_MEMEQ(test, mock->pen_command, expected, sizeof(expected));
+
+	/* A controller which never acknowledges the command times out. */
+	mock->pen_stuck = true;
+	KUNIT_EXPECT_EQ(test, nvt_thp_set_pen_model(map, 3), -ETIMEDOUT);
+	KUNIT_EXPECT_EQ(test, mock->pen_commands, 11U);
+}
+
 static void nvt_test_host_command_timeout(struct kunit *test)
 {
 	static const u8 expected[5] = { 0xbf, 0x04, 0x00, 0x00, 0x00 };
@@ -675,6 +709,7 @@ static struct kunit_case nvt_cases[] = {
 	KUNIT_CASE(nvt_test_get_extend_command),
 	KUNIT_CASE(nvt_test_host_commands),
 	KUNIT_CASE(nvt_test_stylus_enabled),
+	KUNIT_CASE(nvt_test_pen_model),
 	KUNIT_CASE(nvt_test_host_command_timeout),
 	{}
 };
