@@ -2692,6 +2692,39 @@ unlock_ret:
 	return 0;
 }
 
+/*
+ * SM8750 video timing shadow registers, as used by the downstream
+ * dsi_ctrl_async_timing_update()/dsi_ctrl_timing_db_update() sequence.
+ * Only VFP changes are accepted by the DPU atomic check: horizontal timing,
+ * DSC, active area, sync widths and link clocks stay unchanged.
+ *
+ * The downstream offsets are relative to the raw controller window, while
+ * msm_host->ctrl_base already carries the io_offset of the variant (four
+ * bytes on the 6G controller).  The offsets below are therefore the
+ * downstream ones minus that shift, so that they reach the same registers:
+ * the flush at 0x1e4 and the double buffer mode at 0x1e8 of the window.
+ */
+#define DSI_TIMING_FLUSH	(0x1e4 - DSI_6G_REG_SHIFT)
+#define DSI_TIMING_DB_MODE	(0x1e8 - DSI_6G_REG_SHIFT)
+
+void msm_dsi_host_update_vfp(struct mipi_dsi_host *host,
+			    const struct drm_display_mode *mode, bool stage)
+{
+	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+	u32 total;
+
+	if (stage) {
+		dsi_write(msm_host, DSI_TIMING_DB_MODE, 1);
+		total = dsi_read(msm_host, REG_DSI_TOTAL);
+		total = (total & 0xffff) | DSI_TOTAL_V_TOTAL(mode->vtotal - 1);
+		dsi_write(msm_host, REG_DSI_TOTAL, total);
+		dsi_write(msm_host, DSI_TIMING_FLUSH, 1);
+		drm_mode_copy(msm_host->mode, mode);
+	} else {
+		dsi_write(msm_host, DSI_TIMING_DB_MODE, 0);
+	}
+}
+
 int msm_dsi_host_set_display_mode(struct mipi_dsi_host *host,
 				  const struct drm_display_mode *mode)
 {
