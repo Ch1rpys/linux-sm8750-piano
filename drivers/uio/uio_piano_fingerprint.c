@@ -38,11 +38,14 @@ static int piano_fp_irqcontrol(struct uio_info *info, s32 enable)
 		spin_unlock_irqrestore(&fp->irq_lock, flags);
 		return -ENODEV;
 	}
+	/* The interrupt handler works on the same bit, so both use the
+	 * atomic operations of the kernel.
+	 */
 	if (enable) {
-		if (__test_and_clear_bit(PIANO_FP_IRQ_DISABLED, &fp->irq_flags))
+		if (_test_and_clear_bit(PIANO_FP_IRQ_DISABLED, &fp->irq_flags))
 			enable_irq(info->irq);
 	} else {
-		if (!__test_and_set_bit(PIANO_FP_IRQ_DISABLED, &fp->irq_flags))
+		if (!_test_and_set_bit(PIANO_FP_IRQ_DISABLED, &fp->irq_flags))
 			disable_irq_nosync(info->irq);
 	}
 	spin_unlock_irqrestore(&fp->irq_lock, flags);
@@ -53,8 +56,11 @@ static irqreturn_t piano_fp_irq(int irq, struct uio_info *info)
 {
 	struct piano_fp *fp = info->priv;
 
-	/* Userspace acknowledges the sensor through QTEE before reenabling. */
-	if (!test_and_set_bit(PIANO_FP_IRQ_DISABLED, &fp->irq_flags))
+	/* Userspace acknowledges the sensor through QTEE before reenabling.
+	 * The bit is the one of the irqcontrol above, so the atomic
+	 * operation of the kernel is the one both of them use.
+	 */
+	if (!_test_and_set_bit(PIANO_FP_IRQ_DISABLED, &fp->irq_flags))
 		disable_irq_nosync(irq);
 	return IRQ_HANDLED;
 }

@@ -565,7 +565,6 @@
 			regulator-name = "piano_fp_vdd";
 			regulator-min-microvolt = <3296000>;
 			regulator-max-microvolt = <3300000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
 		/* Stock keyboard bridge dvdd (1800000 uV request, VSET reads 1800 mV). */
