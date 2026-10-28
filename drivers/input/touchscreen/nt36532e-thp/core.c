@@ -751,8 +751,69 @@ static ssize_t panel_vendor_show(struct device *dev, struct device_attribute *at
 }
 static DEVICE_ATTR_RO(panel_vendor);
 
+/*
+ * The stock stack turns the stylus scan on while a pen consumer is
+ * connected and off again when it is gone. The consumer asks for it at
+ * runtime: the state of the pen is not a property of the board.
+ */
+static ssize_t stylus_scan_store(struct device *dev,
+				  struct device_attribute *attr,
+				  const char *buf, size_t count)
+{
+	struct nvt_thp *nvt = dev_get_drvdata(dev);
+	struct nvt_thp_command_status last = { 0 };
+	bool enable;
+	int ret;
+
+	if (sysfs_streq(buf, "1") || sysfs_streq(buf, "1\n"))
+		enable = true;
+	else if (sysfs_streq(buf, "0") || sysfs_streq(buf, "0\n"))
+		enable = false;
+	else
+		return -EINVAL;
+
+	mutex_lock(&nvt->lifecycle_lock);
+	ret = nvt_thp_set_stylus_enable(nvt->map, enable, &last);
+	mutex_unlock(&nvt->lifecycle_lock);
+	if (ret)
+		return dev_err_probe(dev, ret,
+				     "stylus scan request failed\n");
+
+	return count;
+}
+static DEVICE_ATTR_WO(stylus_scan);
+
+/*
+ * The vendor names the pen models 1 for the M80P, 2 for the N83P and 3
+ * for the P81C. A pen that does not answer leaves the finger stream
+ * alone: the failure is reported and the touch keeps running.
+ */
+static ssize_t stylus_model_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	struct nvt_thp *nvt = dev_get_drvdata(dev);
+	unsigned int model;
+	int ret;
+
+	if (kstrtouint(buf, 10, &model) || model > U8_MAX)
+		return -EINVAL;
+
+	mutex_lock(&nvt->lifecycle_lock);
+	ret = nvt_thp_set_pen_model(nvt->map, model);
+	mutex_unlock(&nvt->lifecycle_lock);
+	if (ret)
+		return dev_err_probe(dev, ret,
+				     "pen model selection failed\n");
+
+	return count;
+}
+static DEVICE_ATTR_WO(stylus_model);
+
 static struct attribute *nvt_panel_attrs[] = {
 	&dev_attr_panel_vendor.attr,
+	&dev_attr_stylus_scan.attr,
+	&dev_attr_stylus_model.attr,
 	NULL
 };
 
