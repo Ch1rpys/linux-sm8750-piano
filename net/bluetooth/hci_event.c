@@ -6787,13 +6787,7 @@ static void hci_le_remote_conn_param_req_evt(struct hci_dev *hdev, void *data,
 	hci_dev_lock(hdev);
 
 	hcon = hci_conn_hash_lookup_handle(hdev, handle);
-	/* LE Connection Complete installs a valid controller handle before
-	 * remote feature discovery completes. A peripheral can request faster
-	 * parameters during that discovery; rejecting the existing handle
-	 * keeps slow idle intervals until its later retry.
-	 */
-	if (!hcon || hcon->type != LE_LINK ||
-	    (hcon->state != BT_CONNECTED && hcon->state != BT_CONFIG)) {
+	if (!hcon || hcon->state != BT_CONNECTED) {
 		send_conn_param_neg_reply(hdev, handle,
 					  HCI_ERROR_UNKNOWN_CONN_ID);
 		goto unlock;
