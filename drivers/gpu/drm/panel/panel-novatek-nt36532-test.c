@@ -148,6 +148,110 @@ static void nt36532_test_piano_reset(struct kunit *test)
 	KUNIT_EXPECT_PTR_EQ(test, piano_boe_panel_info.reset, &piano_reset);
 }
 
+/*
+ * The Piano table starts with the 144 Hz mode, whose horizontal timing
+ * differs from the 120 Hz one, and the 120 Hz mode is the one whose
+ * display path has been validated. Every mode stays advertised.
+ */
+static void nt36532_test_piano_preferred(struct kunit *test)
+{
+	unsigned int i;
+
+	/* The table carries the rate in the pixel clock, not in .vrefresh. */
+	KUNIT_EXPECT_EQ(test, drm_mode_vrefresh(&piano_display_modes[0]), 144);
+	KUNIT_EXPECT_EQ(test, drm_mode_vrefresh(&piano_display_modes[1]), 120);
+
+	KUNIT_EXPECT_EQ(test, nt36532_preferred_mode(&piano_csot_panel_info, true),
+			1);
+	KUNIT_EXPECT_EQ(test, nt36532_preferred_mode(&piano_boe_panel_info, true),
+			1);
+
+	/* Other boards keep the first mode of their table. */
+	KUNIT_EXPECT_EQ(test, nt36532_preferred_mode(&piano_csot_panel_info, false),
+			0);
+	KUNIT_EXPECT_EQ(test, nt36532_preferred_mode(&csot_panel_info, false), 0);
+
+	/* No mode is dropped by the choice. */
+	KUNIT_EXPECT_EQ(test, piano_csot_panel_info.num_modes,
+			ARRAY_SIZE(piano_display_modes));
+	for (i = 0; i < piano_csot_panel_info.num_modes; i++)
+		KUNIT_EXPECT_PTR_EQ(test, &piano_csot_panel_info.modes[i],
+				    &piano_display_modes[i]);
+}
+
+/*
+ * The DPU can only change the vertical front porch between modes that
+ * share the link clock, the horizontal timing and the active area. The
+ * 90 Hz and 144 Hz modes have their own horizontal timing and keep a full
+ * modeset, so they must not be in that family.
+ */
+static void nt36532_test_piano_timing_family(struct kunit *test)
+{
+	static const unsigned int same_family[] = { 60, 50, 48, 30 };
+	const struct drm_display_mode *ref = &piano_display_modes[1];
+	unsigned int i;
+
+	/* The 120 Hz mode is the reference of the family. */
+	KUNIT_EXPECT_EQ(test, drm_mode_vrefresh(ref), 120U);
+
+	for (i = 0; i < ARRAY_SIZE(same_family); i++) {
+		const struct drm_display_mode *mode = NULL;
+		unsigned int j;
+
+		for (j = 0; j < ARRAY_SIZE(piano_display_modes); j++)
+			if (drm_mode_vrefresh(&piano_display_modes[j]) == same_family[i])
+				mode = &piano_display_modes[j];
+		KUNIT_ASSERT_NOT_NULL(test, mode);
+
+		KUNIT_EXPECT_EQ(test, mode->clock, ref->clock);
+		KUNIT_EXPECT_EQ(test, mode->hdisplay, ref->hdisplay);
+		KUNIT_EXPECT_EQ(test, mode->htotal, ref->htotal);
+		KUNIT_EXPECT_EQ(test, mode->hsync_start, ref->hsync_start);
+		KUNIT_EXPECT_EQ(test, mode->hsync_end, ref->hsync_end);
+		KUNIT_EXPECT_EQ(test, mode->vdisplay, ref->vdisplay);
+		KUNIT_EXPECT_EQ(test, mode->flags, ref->flags);
+		/* Only the vertical total differs. */
+		KUNIT_EXPECT_NE(test, mode->vtotal, ref->vtotal);
+	}
+
+	/* The 144 Hz and 90 Hz modes have a different horizontal timing. */
+	KUNIT_EXPECT_NE(test, piano_display_modes[0].htotal, ref->htotal);
+	KUNIT_EXPECT_NE(test, piano_display_modes[2].htotal, ref->htotal);
+	KUNIT_EXPECT_NE(test, piano_display_modes[0].clock, ref->clock);
+	KUNIT_EXPECT_NE(test, piano_display_modes[2].clock, ref->clock);
+}
+
+/*
+ * The low refresh rates keep the 120 Hz pixel clock and the horizontal
+ * timing, and only extend the vertical blanking, so neither the link rate
+ * nor the DSC PPS changes.
+ */
+static void nt36532_test_piano_low_rates(struct kunit *test)
+{
+	static const unsigned int rates[] = { 60, 50, 48, 30 };
+	unsigned int i;
+
+	KUNIT_EXPECT_EQ(test, ARRAY_SIZE(piano_display_modes), 7U);
+
+	/* The 120 Hz mode is the one the low rates are derived from. */
+	for (i = 3; i < ARRAY_SIZE(piano_display_modes); i++) {
+		struct drm_display_mode *mode = &piano_display_modes[i];
+
+		KUNIT_EXPECT_EQ(test, drm_mode_vrefresh(mode), rates[i - 3]);
+		KUNIT_EXPECT_EQ(test, mode->clock, piano_display_modes[1].clock);
+		KUNIT_EXPECT_EQ(test, mode->htotal, piano_display_modes[1].htotal);
+		KUNIT_EXPECT_EQ(test, mode->hsync_start, piano_display_modes[1].hsync_start);
+		KUNIT_EXPECT_EQ(test, mode->vdisplay, piano_display_modes[1].vdisplay);
+		/* The vertical total grows as the rate falls. */
+		KUNIT_EXPECT_GT(test, mode->vtotal, piano_display_modes[1].vtotal);
+	}
+
+	/* The 60 Hz mode keeps the vertical total it had before. */
+	KUNIT_EXPECT_EQ(test, piano_display_modes[3].vtotal,
+			PIANO_VDISPLAY + PIANO_VFP + PIANO_VTOTAL + PIANO_VSYNC +
+			PIANO_VBP);
+}
+
 static bool nt36532_test_msg_is(const struct nt36532_test_msg *m,
 				const u8 *data, size_t len)
 {
@@ -252,6 +356,9 @@ static void nt36532_test_piano_modules(struct kunit *test)
 static struct kunit_case nt36532_test_cases[] = {
 	KUNIT_CASE(nt36532_test_select),
 	KUNIT_CASE(nt36532_test_piano_reset),
+	KUNIT_CASE(nt36532_test_piano_preferred),
+	KUNIT_CASE(nt36532_test_piano_low_rates),
+	KUNIT_CASE(nt36532_test_piano_timing_family),
 	KUNIT_CASE(nt36532_test_piano_modules),
 	KUNIT_CASE(nt36532_test_log_sequences),
 	{}
