@@ -49,6 +49,21 @@ properties:
       high for the BOE module on the Xiaomi Pad 8 Pro. It selects the
       firmware-name entry for the module.
 
+  novatek,stylus-enabled:
+    type: boolean
+    default: false
+    description:
+      Keep the stylus scan enabled after the firmware is loaded. The stock
+      stack disables the scan while no pen consumer is connected, so the
+      driver only keeps it enabled when the device tree asks for a stylus.
+
+  novatek,stylus-model:
+    enum: [1, 2, 3]
+    description:
+      Pen model to select with the host command family, 1 for the M80P,
+      2 for the N83P and 3 for the P81C. Without the property no model is
+      selected and the controller keeps the model of the firmware.
+
 required:
   - compatible
   - reg
