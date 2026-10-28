@@ -53,6 +53,10 @@ struct nvt_thp_command_status {
 int nvt_thp_get_extend_command(struct regmap *map, u8 sub_command, u16 *value,
 			       struct nvt_thp_command_status *last);
 
-int nvt_thp_apply_host_commands(struct regmap *map, struct nvt_thp_command_status *last);
+int nvt_thp_apply_host_commands(struct regmap *map,
+			      struct nvt_thp_command_status *last);
+int nvt_thp_set_stylus_enable(struct regmap *map, bool enable,
+			       struct nvt_thp_command_status *last);
+int nvt_thp_set_pen_model(struct regmap *map, u8 model);
 
 #endif
