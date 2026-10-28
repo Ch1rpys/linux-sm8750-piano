@@ -45,6 +45,21 @@ static inline struct msm_dsi *dsi_mgr_get_other_dsi(int id)
 	return msm_dsim_glb.dsi[(id + 1) % DSI_MAX];
 }
 
+void msm_dsi_update_vfp(struct msm_dsi *dsi,
+			const struct drm_display_mode *mode, bool stage)
+{
+	struct msm_dsi *master = dsi_mgr_get_dsi(DSI_CLOCK_MASTER);
+	struct msm_dsi *slave = dsi_mgr_get_dsi(DSI_CLOCK_SLAVE);
+
+	/* The stock split-DSI sequence updates the clock master first. */
+	if (IS_BONDED_DSI()) {
+		msm_dsi_host_update_vfp(master->host, mode, stage);
+		msm_dsi_host_update_vfp(slave->host, mode, stage);
+	} else {
+		msm_dsi_host_update_vfp(dsi->host, mode, stage);
+	}
+}
+
 static int dsi_mgr_parse_of(struct device_node *np, int id)
 {
 	struct msm_dsi_manager *msm_dsim = &msm_dsim_glb;
@@ -199,6 +214,7 @@ static void dsi_mgr_phy_disable(int id)
 struct dsi_bridge {
 	struct drm_bridge base;
 	int id;
+	bool link_ready;
 };
 
 #define to_dsi_bridge(x) container_of(x, struct dsi_bridge, base)
@@ -241,6 +257,26 @@ static int dsi_mgr_bridge_power_on(struct drm_bridge *bridge)
 		}
 	}
 
+	/* Both HS clock paths are ready: synchronize both PHYs first. */
+	msm_dsi_phy_toggle_resync_fifo(msm_dsi->phy);
+	if (is_bonded_dsi && msm_dsi1)
+		msm_dsi_phy_toggle_resync_fifo(msm_dsi1->phy);
+
+	/* Release D-PHY CLK_EN_SEL only after both FIFOs are synchronized. */
+	msm_dsi_phy_reset_clk_en_sel(msm_dsi->phy);
+	if (is_bonded_dsi && msm_dsi1)
+		msm_dsi_phy_reset_clk_en_sel(msm_dsi1->phy);
+
+	/* OEM bonded-video prepare resets both controllers after PHY resync. */
+	if (is_bonded_dsi && msm_dsi1) {
+		ret = msm_dsi_host_reset_after_phy_sync(host);
+		if (ret)
+			goto host_sync_fail;
+		ret = msm_dsi_host_reset_after_phy_sync(msm_dsi1->host);
+		if (ret)
+			goto host_sync_fail;
+	}
+
 	/*
 	 * Enable before preparing the panel, disable after unpreparing, so
 	 * that the panel can communicate over the DSI link.
@@ -251,6 +287,8 @@ static int dsi_mgr_bridge_power_on(struct drm_bridge *bridge)
 
 	return 0;
 
+host_sync_fail:
+	msm_dsi_host_power_off(msm_dsi1->host);
 host1_on_fail:
 	msm_dsi_host_power_off(host);
 host_on_fail:
@@ -291,6 +329,7 @@ static void dsi_mgr_bridge_pre_enable(struct drm_bridge *bridge)
 	if (is_bonded_dsi && !IS_MASTER_DSI_LINK(id))
 		return;
 
+	to_dsi_bridge(bridge)->link_ready = false;
 	ret = dsi_mgr_bridge_power_on(bridge);
 	if (ret) {
 		dev_err(&msm_dsi->pdev->dev, "Power on failed: %d\n", ret);
@@ -311,6 +350,7 @@ static void dsi_mgr_bridge_pre_enable(struct drm_bridge *bridge)
 		}
 	}
 
+	to_dsi_bridge(bridge)->link_ready = true;
 	return;
 
 host1_en_fail:
@@ -350,6 +390,9 @@ static void dsi_mgr_bridge_post_disable(struct drm_bridge *bridge)
 	 */
 	if (is_bonded_dsi && !IS_MASTER_DSI_LINK(id))
 		goto disable_phy;
+	if (!to_dsi_bridge(bridge)->link_ready)
+		goto disable_phy;
+	to_dsi_bridge(bridge)->link_ready = false;
 
 	ret = msm_dsi_host_disable(host);
 	if (ret)
@@ -449,9 +492,57 @@ static int dsi_mgr_bridge_attach(struct drm_bridge *bridge,
 				 bridge, flags);
 }
 
+static void dsi_mgr_bridge_enable(struct drm_bridge *bridge,
+				  struct drm_atomic_commit *state)
+{
+	int id = dsi_mgr_bridge_get_id(bridge);
+	struct msm_dsi *msm_dsi = dsi_mgr_get_dsi(id);
+	struct msm_dsi *msm_dsi1 = dsi_mgr_get_dsi(DSI_1);
+	bool bonded = IS_BONDED_DSI();
+	int ret;
+
+	if ((bonded && !IS_MASTER_DSI_LINK(id)) || !to_dsi_bridge(bridge)->link_ready)
+		return;
+	/* The standard panel bridge has now completed prepare/DCS/PPS. */
+	ret = msm_dsi_host_enable_video(msm_dsi->host);
+	if (ret)
+		goto failed;
+	if (bonded && msm_dsi1) {
+		ret = msm_dsi_host_enable_video(msm_dsi1->host);
+		if (ret) {
+			msm_dsi_host_disable_video(msm_dsi->host);
+			goto failed;
+		}
+	}
+	return;
+failed:
+	/* Do not power off a prepared panel: keep command access for unprepare. */
+	pr_err("%s: video enable failed, %d\n", __func__, ret);
+}
+
+static void dsi_mgr_bridge_disable(struct drm_bridge *bridge,
+				   struct drm_atomic_commit *state)
+{
+	int id = dsi_mgr_bridge_get_id(bridge);
+	struct msm_dsi *msm_dsi = dsi_mgr_get_dsi(id);
+	struct msm_dsi *msm_dsi1 = dsi_mgr_get_dsi(DSI_1);
+	bool bonded = IS_BONDED_DSI();
+
+	if ((bonded && !IS_MASTER_DSI_LINK(id)) || !to_dsi_bridge(bridge)->link_ready)
+		return;
+	/* Stop the peer before its master, keeping link/command/IRQ access until
+	 * the panel's standard post-disable has sent its off/sleep DCS.
+	 */
+	if (bonded && msm_dsi1)
+		msm_dsi_host_disable_video(msm_dsi1->host);
+	msm_dsi_host_disable_video(msm_dsi->host);
+}
+
 static const struct drm_bridge_funcs dsi_mgr_bridge_funcs = {
 	.attach = dsi_mgr_bridge_attach,
 	.pre_enable = dsi_mgr_bridge_pre_enable,
+	.atomic_enable = dsi_mgr_bridge_enable,
+	.atomic_disable = dsi_mgr_bridge_disable,
 	.post_disable = dsi_mgr_bridge_post_disable,
 	.mode_set = dsi_mgr_bridge_mode_set,
 	.mode_valid = dsi_mgr_bridge_mode_valid,
@@ -465,6 +556,7 @@ int msm_dsi_manager_connector_init(struct msm_dsi *msm_dsi,
 	struct drm_bridge *bridge;
 	struct dsi_bridge *dsi_bridge;
 	struct drm_connector *connector;
+	struct drm_dsc_config *dsc;
 	int ret;
 
 	dsi_bridge = devm_drm_bridge_alloc(msm_dsi->dev->dev, struct dsi_bridge, base,
@@ -488,6 +580,25 @@ int msm_dsi_manager_connector_init(struct msm_dsi *msm_dsi,
 	if (IS_ERR(connector)) {
 		DRM_ERROR("Unable to create bridge connector\n");
 		return PTR_ERR(connector);
+	}
+
+	/* DSC uses one fixed component depth from the attached panel. Expose
+	 * that exact depth; changing it would also require changing the PPS
+	 * and panel configuration. This does not advertise HDR or panel FRC.
+	 */
+	dsc = msm_dsi_host_get_dsc_config(msm_dsi->host);
+	if (connector->connector_type == DRM_MODE_CONNECTOR_DSI &&
+	    dsc && dsc->bits_per_component) {
+		if (!connector->state)
+			connector->funcs->reset(connector);
+		if (!connector->state)
+			return -ENOMEM;
+		ret = drm_connector_attach_max_bpc_property(connector,
+						     dsc->bits_per_component,
+						     dsc->bits_per_component);
+		if (ret)
+			return ret;
+		connector->max_bpc = dsc->bits_per_component;
 	}
 
 	return 0;

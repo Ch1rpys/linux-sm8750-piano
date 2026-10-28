@@ -69,6 +69,10 @@ int msm_dsi_host_cmd_rx(struct mipi_dsi_host *host,
 void msm_dsi_host_cmd_xfer_commit(struct mipi_dsi_host *host,
 					u32 dma_base, u32 len);
 int msm_dsi_host_enable(struct mipi_dsi_host *host);
+int msm_dsi_host_enable_video(struct mipi_dsi_host *host);
+void msm_dsi_host_update_vfp(struct mipi_dsi_host *host,
+			    const struct drm_display_mode *mode, bool stage);
+int msm_dsi_host_disable_video(struct mipi_dsi_host *host);
 int msm_dsi_host_disable(struct mipi_dsi_host *host);
 void msm_dsi_host_enable_irq(struct mipi_dsi_host *host);
 void msm_dsi_host_disable_irq(struct mipi_dsi_host *host);
@@ -76,6 +80,7 @@ int msm_dsi_host_power_on(struct mipi_dsi_host *host,
 			struct msm_dsi_phy_shared_timings *phy_shared_timings,
 			bool is_bonded_dsi, struct msm_dsi_phy *phy);
 int msm_dsi_host_power_off(struct mipi_dsi_host *host);
+int msm_dsi_host_reset_after_phy_sync(struct mipi_dsi_host *host);
 int msm_dsi_host_set_display_mode(struct mipi_dsi_host *host,
 				  const struct drm_display_mode *mode);
 enum drm_mode_status msm_dsi_host_check_dsc(struct mipi_dsi_host *host,

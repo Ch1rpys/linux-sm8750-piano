@@ -197,12 +197,39 @@ static int nt36532_unprepare(struct drm_panel *panel)
 	return 0;
 }
 
+/*
+ * The index of the mode to mark preferred. Piano's validated pen scan
+ * uses a 120 Hz cold-start display mode; every other board keeps the
+ * first mode of its table.
+ */
+static unsigned int nt36532_preferred_mode(const struct panel_info *info,
+					    bool piano)
+{
+	unsigned int i;
+
+	if (!piano)
+		return 0;
+
+	for (i = 0; i < info->num_modes; i++)
+		if (drm_mode_vrefresh(&info->modes[i]) == 120)
+			return i;
+
+	return 0;
+}
+
 static int nt36532_get_modes(struct drm_panel *panel,
 			     struct drm_connector *connector)
 {
 	struct nt36532 *ctx = to_nt36532(panel);
 	const struct panel_info *panel_info = ctx->panel_info;
+	unsigned int preferred;
 	unsigned int i;
+
+	/* Piano's validated pen scan uses a 120 Hz cold-start display mode.
+	 * Keep every advertised mode and each panel vendor's own sequence.
+	 */
+	preferred = nt36532_preferred_mode(panel_info,
+					   of_machine_is_compatible("xiaomi,piano"));
 
 	for (i = 0; i < panel_info->num_modes; i++) {
 		struct drm_display_mode *mode;
@@ -212,7 +239,7 @@ static int nt36532_get_modes(struct drm_panel *panel,
 			return -ENOMEM;
 
 		mode->type = DRM_MODE_TYPE_DRIVER;
-		if (i == 0)
+		if (i == preferred)
 			mode->type |= DRM_MODE_TYPE_PREFERRED;
 
 		drm_mode_set_name(mode);
@@ -413,9 +440,9 @@ static const struct drm_dsc_config csot_dsc_cfg = {
  *
  * The link runs at a fixed 1197.5 Mbps per lane and the refresh rate is
  * selected by the horizontal front porch. With RGB101010 and 8 bpp DSC the
- * modes below reproduce exactly that link rate. The 60 Hz mode keeps the
- * 120 Hz panel timing with a doubled vertical total, like the downstream
- * dynamic refresh rate implementation.
+ * modes below reproduce exactly that link rate. The lower refresh rates
+ * keep the 120 Hz panel timing and extend vertical blanking, as specified
+ * by the downstream dfps_immediate_porch_mode_vfp configuration.
  */
 #define PIANO_HDISPLAY	3200
 #define PIANO_HSYNC	32
@@ -442,11 +469,22 @@ static const struct drm_dsc_config csot_dsc_cfg = {
 	.height_mm = 163,							\
 }
 
+/* All low-rate modes retain the 120 Hz pixel clock and horizontal timing.
+ * Both P81_35 and P81_42 advertise 30/48/50/60/90/120/144 in the stock DT.
+ * These are fixed modes; seamless updates require DSI host/DPU support.
+ */
+#define PIANO_VFP_MODE(_vrefresh) \
+	PIANO_MODE(234, PIANO_VFP + PIANO_VTOTAL * 120 / (_vrefresh) - \
+		   PIANO_VTOTAL, (_vrefresh))
+
 static const struct drm_display_mode piano_display_modes[] = {
 	PIANO_MODE(42, PIANO_VFP, 144),
 	PIANO_MODE(234, PIANO_VFP, 120),
 	PIANO_MODE(618, PIANO_VFP, 90),
-	PIANO_MODE(234, PIANO_VFP + PIANO_VTOTAL, 60),
+	PIANO_VFP_MODE(60),
+	PIANO_VFP_MODE(50),
+	PIANO_VFP_MODE(48),
+	PIANO_VFP_MODE(30),
 };
 
 static const struct regulator_bulk_data piano_supplies[] = {
@@ -636,7 +674,7 @@ static int piano_init_sequence(struct nt36532 *ctx,
 		b3 = 0x80;
 		break;
 	default:
-		/* 120 Hz panel timing, also used for 60 Hz */
+		/* 120 Hz panel timing, also used for 30/48/50/60 Hz */
 		b2 = 0x91;
 		b3 = 0x40;
 		break;
@@ -715,6 +753,14 @@ static int nt36532_probe(struct mipi_dsi_device *dsi)
 				   DRM_MODE_CONNECTOR_DSI);
 	if (IS_ERR(ctx))
 		return PTR_ERR(ctx);
+
+	/*
+	 * The DSI host has to be initialised before the panel is powered up,
+	 * and it has to stay alive until the panel has been told to go to
+	 * sleep, otherwise the display off and sleep commands never reach
+	 * the panel.
+	 */
+	ctx->panel.prepare_prev_first = true;
 
 	variants = of_device_get_match_data(dev);
 	if (!variants)
